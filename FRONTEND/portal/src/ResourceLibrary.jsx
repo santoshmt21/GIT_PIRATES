@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Upload, Loader2, X } from 'lucide-react';
+import DashboardSidebar from './DashboardSidebar.jsx';
 
 export default function ResourceLibrary({ onBack }) {
   // Resource Library Form State
@@ -67,7 +68,8 @@ export default function ResourceLibrary({ onBack }) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-6 overflow-x-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-6 pl-36 overflow-x-hidden">
+      <DashboardSidebar activePath="/library" />
       <div className="max-w-2xl mx-auto">
         {onBack && (
           <button 

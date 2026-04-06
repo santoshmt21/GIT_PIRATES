@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Search, ChevronLeft, ChevronRight, Bell, User, Plus, Clock, X, ChevronDown, Home, Heart, Upload, BookUser, CreditCard } from 'lucide-react';
+import DashboardSidebar from './DashboardSidebar.jsx';
 
 const CalendarUI = ({ onBack, onNavigateToHealth, onNavigateToProfile, onNavigateToUpload, onNavigateToBooking }) => {
   const todayDate = new Date();
@@ -80,55 +81,8 @@ const CalendarUI = ({ onBack, onNavigateToHealth, onNavigateToProfile, onNavigat
   const calendarDays = getDaysInMonth(currentDate.getFullYear(), currentDate.getMonth());
 
   return (
-    <div className="h-screen bg-gray-50 flex p-6 gap-6">
-      {/* Fixed Floating Circular Sidebar */}
-      <div className="flex-shrink-0 flex items-center">
-        <div className="bg-gradient-to-b from-teal-400 via-teal-500 to-cyan-400 rounded-full p-3 shadow-2xl w-fit h-fit">
-          <div className="flex flex-col items-center gap-6 py-12 px-2">
-            {sidebarIcons.map((item, index) => {
-              const Icon = item.icon;
-              const isActive = activeIcon === index;
-              const isTopSection = index < 3;
-              
-              return (
-                <button
-                  key={index}
-                  onClick={() => {
-                    if (index === 0) {
-                      onBack();
-                    } else if (index === 1) {
-                      onNavigateToHealth();
-                    } else if (index === 2) {
-                      onNavigateToUpload?.();
-                    } else if (index === 3) {
-                      onNavigateToBooking?.();
-                    } else if (index === 4) {
-                      setActiveIcon(index);
-                    } else if (index === 5) {
-                      onNavigateToProfile();
-                    } else {
-                      setActiveIcon(index);
-                    }
-                  }}
-                  className={`w-16 h-16 rounded-full flex items-center justify-center transition-all ${
-                    isActive 
-                      ? 'bg-white shadow-lg scale-110' 
-                      : 'hover:bg-white/20'
-                  }`}
-                >
-                  <Icon 
-                    className={`w-7 h-7 ${
-                      isActive 
-                        ? isTopSection ? 'text-teal-500' : 'text-gray-400'
-                        : 'text-white'
-                    }`} 
-                  />
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
+    <div className="h-screen bg-gray-50 flex p-6 pl-40 gap-6">
+      <DashboardSidebar activePath="/schedule" />
 
       {/* Left Sidebar */}
       <div className="w-72 bg-white border-r border-gray-200 p-6 flex flex-col">

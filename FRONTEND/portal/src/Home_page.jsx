@@ -36,6 +36,7 @@ import BioAge from './BioAge.jsx';
 import AppointmentBooking from './Booking.jsx';
 import ConsultationChat from './ConsultationChat.jsx';
 import ResourceLibrary from './ResourceLibrary.jsx';
+import DashboardSidebar from './DashboardSidebar.jsx';
 
 
 const MourUI = () => {
@@ -235,11 +236,11 @@ const MourUI = () => {
       localStorage.removeItem("userName");
       localStorage.removeItem("userEmail");
       localStorage.removeItem("userRole");
-      navigate("/login");
+      navigate("/login", { replace: true });
     } catch (err) {
       console.error("Logout error:", err);
       // Even if error, try to navigate
-      navigate("/login");
+      navigate("/login", { replace: true });
     }
   };
 
@@ -426,8 +427,9 @@ const MourUI = () => {
 
   const handleNavigation = (index) => {
     setActiveIcon(index);
-    const views = ['main', 'health', 'upload', 'resource_library', 'bioage', 'booking', 'schedule', 'profile'];
-    setCurrentView(views[index] || 'main');
+    const routes = ['/home', '/health', '/upload', '/library', '/bioage', '/booking', '/schedule', '/profile'];
+    const route = routes[index] || '/home';
+    navigate(route);
   };
 
   const renderView = () => {
@@ -508,44 +510,9 @@ const MourUI = () => {
   }
 
   return (
-    <div className="h-screen bg-gradient-to-br from-teal-50 via-cyan-50 to-blue-50 flex items-center justify-center p-6 gap-6">
+    <div className="h-screen bg-gradient-to-br from-teal-50 via-cyan-50 to-blue-50 flex items-center justify-center p-6 pl-40 gap-6">
 
-      {/* SIDEBAR */}
-      <div className="flex-shrink-0 flex items-center">
-        <div className="bg-gradient-to-b from-teal-400 via-teal-500 to-cyan-400 rounded-full p-3 shadow-2xl w-fit h-fit">
-          <div className="flex flex-col items-center gap-6 py-12 px-2">
-            {sidebarIcons.map((item, index) => {
-              const Icon = item.icon;
-              const isActive = activeIcon === index;
-              const isTopSection = index < 3;
-              const labels = ['Home', 'Health', 'Upload', 'Resource Library', 'BioAge', 'Booking', 'Schedule', 'Profile'];
-              const label = labels[index] || 'Menu';
-
-              return (
-                <button
-                  key={index}
-                  onClick={() => handleNavigation(index)}
-                  title={label}
-                  className={`w-16 h-16 rounded-full flex items-center justify-center transition-all relative group ${isActive
-                    ? 'bg-white shadow-lg scale-110'
-                    : 'hover:bg-white/20'
-                    }`}
-                >
-                  <Icon
-                    className={`w-7 h-7 ${isActive
-                      ? isTopSection ? 'text-teal-500' : 'text-gray-400'
-                      : 'text-white'
-                      }`}
-                  />
-                  <span className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">
-                    {label}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
+      <DashboardSidebar activePath="/home" />
 
       {/* MAIN PANEL */}
       <div className="flex-1 bg-white rounded-3xl shadow-lg overflow-hidden flex flex-col h-full">

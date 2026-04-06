@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Upload, FileText, Image, Loader2, Copy, Download, X } from 'lucide-react';
+import DashboardSidebar from './DashboardSidebar.jsx';
 
 export default function TextExtractor({ onBack }) {
   const [file, setFile] = useState(null);
@@ -109,7 +110,8 @@ export default function TextExtractor({ onBack }) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-6 overflow-x-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-6 pl-36 overflow-x-hidden">
+      <DashboardSidebar activePath="/upload" />
       <div className="max-w-[90rem] mx-auto">
         {onBack && (
           <button 

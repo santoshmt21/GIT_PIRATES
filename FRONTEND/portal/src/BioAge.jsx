@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import DashboardSidebar from './DashboardSidebar.jsx';
 
 const REF = {
   albumin: { low: 3.5, high: 5.0, unit: "g/dL" },
@@ -150,6 +151,130 @@ const FIELDS = [
 
 const DEMO = { age: 52, pheno_age: 58.3, albumin: 3.8, creatinine: 1.3, glucose: 108, crp: 4.2, lymphocyte_pct: 18, mcv: 102, rdw: 15.1, alp: 160, wbc: 10.5, sex: "male" };
 
+const BIOMARKER_REF_MAP = {
+  Albumin: "albumin",
+  Creatinine: "creatinine",
+  Glucose: "glucose",
+  CRP: "crp",
+  "Lymphocyte %": "lymphocyte_pct",
+  MCV: "mcv",
+  RDW: "rdw",
+  ALP: "alp",
+  WBC: "wbc",
+};
+
+const DISEASE_ICON_MAP = {
+  "Cardiovascular Disease": "❤",
+  "Type 2 Diabetes": "◈",
+  "Chronic Kidney Disease": "⬡",
+  "Liver Disease": "◉",
+  "Cancer / Immune Risk": "◎",
+  "Metabolic Syndrome": "⬢",
+};
+
+const RISK_LEVEL_UI = {
+  Low: { label: "Low Risk", color: "#166534", bg: "rgba(22,101,52,0.15)", bar: "#22c55e", dot: "#16a34a" },
+  Moderate: { label: "Moderate Risk", color: "#92400e", bg: "rgba(146,64,14,0.15)", bar: "#f59e0b", dot: "#d97706" },
+  High: { label: "High Risk", color: "#9a3412", bg: "rgba(154,52,18,0.15)", bar: "#f97316", dot: "#ea580c" },
+  "Very High": { label: "Very High", color: "#7f1d1d", bg: "rgba(127,29,19,0.18)", bar: "#ef4444", dot: "#dc2626" },
+};
+
+function getBiomarkerRef(name, sex) {
+  const key = BIOMARKER_REF_MAP[name];
+  if (!key) return null;
+  if (key === "creatinine") {
+    return sex === "female" ? REF.creatinine_f : REF.creatinine_m;
+  }
+  return REF[key] || null;
+}
+
+function mapBackendRiskToUi(riskData, sex) {
+  const biomarkerStatuses = Array.isArray(riskData?.biomarker_statuses) ? riskData.biomarker_statuses : [];
+  const diseaseRisks = Array.isArray(riskData?.disease_risks) ? riskData.disease_risks : [];
+
+  const bios = biomarkerStatuses.map((b) => {
+    const ref = getBiomarkerRef(b.name, sex);
+    const fillPct = ref
+      ? Math.min(100, Math.max(5, ((Number(b.value) - ref.low * 0.5) / (ref.high * 1.5 - ref.low * 0.5)) * 100))
+      : 50;
+    return {
+      name: b.name,
+      value: Number(b.value),
+      unit: b.unit,
+      status: b.status,
+      deviation: Number(b.deviation ?? 0),
+      fillPct,
+    };
+  });
+
+  const diseases = diseaseRisks.map((d) => {
+    const level = RISK_LEVEL_UI[d.risk_level] || RISK_LEVEL_UI.Moderate;
+    return {
+      name: d.name,
+      icon: DISEASE_ICON_MAP[d.name] || "•",
+      score: Number(d.risk_score ?? 0),
+      level,
+      factors: Array.isArray(d.contributing_factors) ? d.contributing_factors : [],
+      recs: Array.isArray(d.recommendations) ? d.recommendations : [],
+    };
+  });
+
+  return {
+    bios,
+    diseases,
+    gap: Number(riskData.age_gap ?? 0),
+    aging:
+      riskData.aging_status === "Accelerated"
+        ? "Accelerated Aging"
+        : riskData.aging_status === "Decelerated"
+        ? "Decelerated Aging"
+        : "Normal Aging",
+    health: Number(riskData.overall_health_score ?? 0),
+    pheno_age: Number(riskData.pheno_age ?? 0),
+    age: Number(riskData.chrono_age ?? 0),
+    allRecs: Array.isArray(riskData.top_priority_actions) ? riskData.top_priority_actions : [],
+  };
+}
+
+function buildHealthSummary(report) {
+  if (!report) return "";
+
+  const topRisks = [...(report.diseases || [])]
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 2);
+
+  const abnormalBiomarkers = (report.bios || [])
+    .filter((b) => b.status !== "normal")
+    .sort((a, b) => (b.deviation || 0) - (a.deviation || 0));
+
+  const ageLine = `Biological age is ${report.pheno_age} years versus chronological age ${report.age}, with an age gap of ${report.gap > 0 ? "+" : ""}${report.gap}.`;
+
+  const healthBand = report.health >= 70 ? "good" : report.health >= 45 ? "moderate" : "low";
+  const healthLine = `Overall health score is ${report.health}/100, which indicates a ${healthBand} current health profile.`;
+
+  const riskLine =
+    topRisks.length > 0
+      ? `Highest risk signals are ${topRisks.map((r) => `${r.name} (${r.score}%)`).join(" and ")}.`
+      : "No major disease risk peaks detected in the current profile.";
+
+  const biomarkerLine =
+    abnormalBiomarkers.length > 0
+      ? `Most deviated biomarkers are ${abnormalBiomarkers.slice(0, 3).map((b) => `${b.name} (${b.status.replace("_", " ")})`).join(", ")}.`
+      : "Most biomarkers are within expected reference ranges.";
+
+  const actionLine = report.allRecs?.[0]
+    ? `Priority action: ${report.allRecs[0]}.`
+    : "Maintain regular follow-up and repeat labs to track trends over time.";
+
+  const prognosisLine = report.health >= 70
+    ? "Overall prediction suggests stable risk control if current habits are maintained with periodic lab follow-up."
+    : report.health >= 45
+      ? "Prediction indicates moderate progression risk, so focused lifestyle correction and repeat testing in the near term are recommended."
+      : "Prediction indicates elevated near-term risk progression, so early clinical consultation and aggressive risk-factor management are strongly advised.";
+
+  return [ageLine, healthLine, riskLine, biomarkerLine, actionLine, prognosisLine].slice(0, 6).join(" ");
+}
+
 function DiseaseCard({ d, idx, visible }) {
   const [open, setOpen] = useState(false);
   const [bw, setBw] = useState(0);
@@ -162,38 +287,38 @@ function DiseaseCard({ d, idx, visible }) {
 
   return (
     <div
-      className="rounded-2xl p-4 cursor-pointer transition-all duration-200"
-      style={{ background: "rgba(255,255,255,0.02)", border: open ? "1px solid rgba(212,92,41,0.3)" : "1px solid rgba(255,255,255,0.06)" }}
+      className="rounded-2xl p-6 min-h-[196px] cursor-pointer transition-all duration-200"
+      style={{ background: "#eaf1f8", border: open ? "1px solid rgba(2,132,199,0.65)" : "1px solid #94a3b8", boxShadow: "0 10px 24px rgba(15,23,42,0.12)" }}
       onClick={() => setOpen((o) => !o)}
     >
       <div className="flex justify-between items-start mb-2.5">
-        <div className="w-9 h-9 rounded-xl flex items-center justify-center text-sm" style={{ background: d.level.bg }}>{d.icon}</div>
-        <span className="text-2xl font-bold" style={{ fontFamily: "'DM Mono', monospace", color: d.level.dot }}>{d.score}%</span>
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center text-base" style={{ background: d.level.bg }}>{d.icon}</div>
+        <span className="text-3xl font-bold" style={{ fontFamily: "'DM Mono', monospace", color: d.level.dot }}>{d.score}%</span>
       </div>
 
-      <div className="text-sm font-semibold mb-0.5" style={{ color: "#e8e3dc" }}>{d.name}</div>
-      <div className="text-xs font-bold mb-2.5 tracking-wide" style={{ fontFamily: "'DM Mono', monospace", color: d.level.dot }}>{d.level.label}</div>
+      <div className="text-lg font-semibold mb-0.5" style={{ color: "#0f172a" }}>{d.name}</div>
+      <div className="text-base font-bold mb-2.5 tracking-wide" style={{ fontFamily: "'DM Mono', monospace", color: d.level.dot }}>{d.level.label}</div>
 
-      <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.07)" }}>
+      <div className="h-2 rounded-full overflow-hidden" style={{ background: "#94a3b8" }}>
         <div className="h-full rounded-full" style={{ width: `${bw}%`, background: d.level.bar, transition: "width 1.1s cubic-bezier(.4,0,.2,1)" }} />
       </div>
 
       {open && (
-        <div className="mt-3.5 pt-3" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+        <div className="mt-3.5 pt-3" style={{ borderTop: "1px solid #e2e8f0" }}>
           {d.factors.length > 0 && (
             <>
-              <div className="text-xs mb-1.5 tracking-widest uppercase" style={{ fontFamily: "'DM Mono', monospace", color: "#2e2e2b" }}>Factors</div>
+              <div className="text-sm mb-1.5 tracking-widest uppercase" style={{ fontFamily: "'DM Mono', monospace", color: "#475569" }}>Factors</div>
               {d.factors.map((f, i) => (
-                <div key={i} className="flex gap-1.5 text-xs mb-1 leading-relaxed" style={{ color: "#52524e" }}>
+                <div key={i} className="flex gap-1.5 text-sm mb-1 leading-relaxed" style={{ color: "#1e293b" }}>
                   <span style={{ color: d.level.dot, flexShrink: 0 }}>▸</span>{f}
                 </div>
               ))}
             </>
           )}
-          <div className="text-xs mb-1.5 tracking-widest uppercase mt-2.5" style={{ fontFamily: "'DM Mono', monospace", color: "#2e2e2b" }}>Recommendations</div>
+          <div className="text-sm mb-1.5 tracking-widest uppercase mt-2.5" style={{ fontFamily: "'DM Mono', monospace", color: "#475569" }}>Recommendations</div>
           {d.recs.map((r, i) => (
-            <div key={i} className="flex gap-1.5 text-xs mb-1 leading-relaxed" style={{ color: "#6b6b64" }}>
-              <span style={{ color: "#d45c29", flexShrink: 0 }}>→</span>{r}
+            <div key={i} className="flex gap-1.5 text-sm mb-1 leading-relaxed" style={{ color: "#334155" }}>
+              <span style={{ color: "#0284c7", flexShrink: 0 }}>→</span>{r}
             </div>
           ))}
         </div>
@@ -323,9 +448,36 @@ export default function BioAge({ onBack }) {
       }
 
       const backendBioAge = Number(data.data.biological_age);
-      const r = compute({ ...inp, pheno_age: backendBioAge });
-      setReport(r);
       setAgeOutput(data.data.formatted_output || "");
+
+      const riskPayload = {
+        age: Number(inp.age),
+        albumin: Number(inp.albumin),
+        creatinine: Number(inp.creatinine),
+        glucose_mgdl: Number(inp.glucose),
+        crp: Number(inp.crp),
+        lymphocyte_percent: Number(inp.lymphocyte_pct),
+        mean_cell_volume: Number(inp.mcv),
+        red_cell_dist_width: Number(inp.rdw),
+        alkaline_phosphatase: Number(inp.alp),
+        white_blood_cell_count: Number(inp.wbc),
+        sex: inp.sex,
+        biological_age: backendBioAge,
+      };
+
+      const riskResponse = await fetch("http://127.0.0.1:8000/reports/heabo-reports/analyze-risk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(riskPayload),
+      });
+
+      const riskData = await riskResponse.json();
+      if (!riskResponse.ok || !riskData?.success) {
+        throw new Error(riskData?.detail || riskData?.message || "Risk analysis failed");
+      }
+
+      const r = mapBackendRiskToUi(riskData.data, inp.sex);
+      setReport(r);
 
       const bws = {};
       r.bios.forEach((b) => { bws[b.name] = b.fillPct; });
@@ -340,29 +492,31 @@ export default function BioAge({ onBack }) {
 
   const gc = !report ? "#d45c29" : report.gap > 5 ? "#ef4444" : report.gap < -5 ? "#22c55e" : "#f59e0b";
   const hc = !report ? "#d45c29" : report.health >= 70 ? "#22c55e" : report.health >= 45 ? "#f59e0b" : "#ef4444";
+  const healthSummaryText = report ? buildHealthSummary(report) : "";
 
   return (
     <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Mono:ital,wght@0,400;0,500;1,400&display=swap');
-        html, body, #root { background: #0c0e0d; margin: 0; padding: 0; width: 100%; }
+        html, body, #root { background: #eff6ff; margin: 0; padding: 0; width: 100%; }
         body { font-family: 'Outfit', sans-serif; }
         @keyframes phSlideUp { from { opacity: 0; transform: translateY(28px); } to { opacity: 1; transform: none; } }
         @keyframes phSpin { to { transform: rotate(360deg); } }
         .ph-results { animation: phSlideUp 0.55s ease both; }
         .ph-spin { display: inline-block; animation: phSpin 0.9s linear infinite; font-size: 18px; }
-        .ph-section-label::after { content: ''; flex: 1; height: 1px; background: rgba(255,255,255,0.05); }
+        .ph-section-label::after { content: ''; flex: 1; height: 1px; background: #cbd5e1; }
         input[type=number]::-webkit-inner-spin-button { opacity: 0.3; }
-        select option { background: #1a1c1b; }
+        select option { background: #ffffff; color: #0f172a; }
       `}</style>
 
-      <div className="min-h-screen w-full" style={{ background: "#0c0e0d", color: "#e8e3dc", fontFamily: "'Outfit', sans-serif" }}>
-        <nav className="sticky top-0 z-50 h-14 px-14 flex items-center justify-between" style={{ background: "rgba(12,14,13,0.92)", backdropFilter: "blur(16px)", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+      <div className="min-h-screen w-full pl-36" style={{ background: "linear-gradient(135deg, #f0f9ff 0%, #ecfeff 45%, #eff6ff 100%)", color: "#0f172a", fontFamily: "'Outfit', sans-serif" }}>
+        <DashboardSidebar activePath="/bioage" />
+        <nav className="sticky top-0 z-50 h-14 px-14 flex items-center justify-between" style={{ background: "rgba(255,255,255,0.9)", backdropFilter: "blur(16px)", borderBottom: "1px solid #dbeafe" }}>
           <div className="flex items-center gap-2.5">
-            <div className="w-2 h-2 rounded-full" style={{ background: "#d45c29" }} />
-            <span className="text-base font-semibold tracking-tight" style={{ color: "#f0ebe3" }}>BioAge</span>
-            <span className="mx-1" style={{ color: "rgba(255,255,255,0.12)" }}>/</span>
-            <span className="text-xs" style={{ color: "#3d3d39" }}>Disease Risk Engine</span>
+            <div className="w-2 h-2 rounded-full" style={{ background: "#0284c7" }} />
+            <span className="text-base font-semibold tracking-tight" style={{ color: "#0f172a" }}>BioAge</span>
+            <span className="mx-1" style={{ color: "#94a3b8" }}>/</span>
+            <span className="text-xs" style={{ color: "#64748b" }}>Disease Risk Engine</span>
           </div>
           <div className="flex items-center gap-3">
             {onBack && (
@@ -370,39 +524,39 @@ export default function BioAge({ onBack }) {
                 type="button"
                 onClick={onBack}
                 className="text-xs px-3 py-1.5 rounded-full tracking-widest transition-colors hover:bg-white/5"
-                style={{ fontFamily: "'DM Mono', monospace", color: "#f0ebe3", border: "1px solid rgba(255,255,255,0.12)" }}
+                style={{ fontFamily: "'DM Mono', monospace", color: "#0f172a", border: "1px solid #cbd5e1" }}
               >
                 ← Back
               </button>
             )}
-            <span className="text-xs px-2.5 py-1 rounded-full tracking-widest" style={{ fontFamily: "'DM Mono', monospace", color: "#d45c29", border: "1px solid rgba(212,92,41,0.28)" }}>v2.0 · BETA</span>
+            <span className="text-xs px-2.5 py-1 rounded-full tracking-widest" style={{ fontFamily: "'DM Mono', monospace", color: "#0284c7", border: "1px solid rgba(14,165,233,0.35)", background: "rgba(14,165,233,0.07)" }}>v2.0 · BETA</span>
           </div>
         </nav>
 
-        <div className="max-w-screen-xl mx-auto px-14 pt-16 pb-12 grid gap-24 items-start" style={{ gridTemplateColumns: "1fr 520px" }}>
+        <div className="w-[70%] mx-auto px-14 pt-16 pb-12 grid gap-24 items-start" style={{ gridTemplateColumns: "1fr 520px" }}>
           <div>
-            <div className="text-xs mb-5 tracking-widest uppercase" style={{ fontFamily: "'DM Mono', monospace", color: "#d45c29" }}>Biological Age Analysis</div>
-            <h1 className="text-6xl font-bold leading-tight mb-5" style={{ letterSpacing: "-0.035em", color: "#f0ebe3" }}>
+            <div className="text-xs mb-5 tracking-widest uppercase" style={{ fontFamily: "'DM Mono', monospace", color: "#0284c7" }}>Biological Age Analysis</div>
+            <h1 className="text-6xl font-bold leading-tight mb-5" style={{ letterSpacing: "-0.035em", color: "#0f172a" }}>
               Predict your<br />
-              <em className="not-italic" style={{ color: "#d45c29" }}>disease risk</em><br />
+              <em className="not-italic" style={{ color: "#0284c7" }}>disease risk</em><br />
               from blood work
             </h1>
-            <p className="text-base leading-relaxed max-w-lg" style={{ color: "#52524e" }}>
+            <p className="text-base leading-relaxed max-w-lg" style={{ color: "#475569" }}>
               Choose whether to use your latest biomarkers from database or enter values manually, then analyze biological age and disease risks.
             </p>
-            <div className="flex gap-10 mt-11 pt-11" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+            <div className="flex gap-10 mt-11 pt-11" style={{ borderTop: "1px solid #cbd5e1" }}>
               {[["9", "Biomarkers analyzed"], ["6", "Disease risks scored"], ["100%", "Runs locally"]].map(([n, l]) => (
                 <div key={l}>
-                  <div className="text-3xl font-bold" style={{ fontFamily: "'DM Mono', monospace", color: "#e8e3dc" }}>{n}</div>
-                  <div className="text-xs mt-1" style={{ color: "#3d3d39" }}>{l}</div>
+                  <div className="text-3xl font-bold" style={{ fontFamily: "'DM Mono', monospace", color: "#0f172a" }}>{n}</div>
+                  <div className="text-xs mt-1" style={{ color: "#64748b" }}>{l}</div>
                 </div>
               ))}
             </div>
           </div>
 
           <div>
-            <div className="rounded-2xl p-7" style={{ border: "1.5px dashed rgba(212,92,41,0.28)", background: "rgba(212,92,41,0.025)" }}>
-              <div className="text-sm uppercase tracking-widest mb-3" style={{ fontFamily: "'DM Mono', monospace", color: "#d45c29" }}>
+            <div className="rounded-2xl p-7" style={{ border: "1.5px dashed rgba(14,165,233,0.4)", background: "#ffffff" }}>
+              <div className="text-base uppercase tracking-widest mb-3" style={{ fontFamily: "'DM Mono', monospace", color: "#0284c7" }}>
                 Marker Data Source
               </div>
               <div className="grid gap-3" style={{ gridTemplateColumns: "1fr 1fr" }}>
@@ -410,35 +564,35 @@ export default function BioAge({ onBack }) {
                   type="button"
                   onClick={loadFromDatabase}
                   disabled={loadingDb}
-                  className="px-4 py-3 rounded-xl text-sm font-semibold transition-opacity disabled:opacity-60"
-                  style={{ background: sourceMode === "database" ? "#d45c29" : "rgba(255,255,255,0.04)", color: sourceMode === "database" ? "#fff" : "#e8e3dc" }}
+                  className="px-4 py-3 rounded-xl text-base font-semibold transition-opacity disabled:opacity-60"
+                  style={{ background: sourceMode === "database" ? "#0284c7" : "#f1f5f9", color: sourceMode === "database" ? "#fff" : "#0f172a" }}
                 >
                   {loadingDb ? "Loading..." : "Use Latest From Database"}
                 </button>
                 <button
                   type="button"
                   onClick={useManualInput}
-                  className="px-4 py-3 rounded-xl text-sm font-semibold transition-opacity"
-                  style={{ background: sourceMode === "manual" ? "#d45c29" : "rgba(255,255,255,0.04)", color: sourceMode === "manual" ? "#fff" : "#e8e3dc" }}
+                  className="px-4 py-3 rounded-xl text-base font-semibold transition-opacity"
+                  style={{ background: sourceMode === "manual" ? "#0284c7" : "#f1f5f9", color: sourceMode === "manual" ? "#fff" : "#0f172a" }}
                 >
                   Enter Manually
                 </button>
               </div>
 
               {sourceInfo && (
-                <p className="text-xs mt-3" style={{ color: "#8d8d86" }}>{sourceInfo}</p>
+                <p className="text-sm mt-3" style={{ color: "#64748b" }}>{sourceInfo}</p>
               )}
 
               {sourceMode === "database" && (
-                <div className="mt-4 flex items-center justify-between rounded-xl px-3 py-2" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
-                  <span className="text-xs" style={{ color: "#9a9a92" }}>
+                <div className="mt-4 flex items-center justify-between rounded-xl px-3 py-2" style={{ background: "#f8fafc", border: "1px solid #e2e8f0" }}>
+                  <span className="text-sm" style={{ color: "#64748b" }}>
                     Values are loaded from recent heabo_reports entry.
                   </span>
                   <button
                     type="button"
                     onClick={() => setAllowEdit((v) => !v)}
-                    className="text-xs px-3 py-1 rounded-full"
-                    style={{ color: "#f0ebe3", border: "1px solid rgba(255,255,255,0.14)" }}
+                    className="text-sm px-3 py-1 rounded-full font-semibold"
+                    style={{ color: "#0f172a", border: "1px solid #cbd5e1", background: "#ffffff" }}
                   >
                     {allowEdit ? "Lock Values" : "Edit Values"}
                   </button>
@@ -450,8 +604,8 @@ export default function BioAge({ onBack }) {
               <div>
                 <div className="mt-4 grid gap-2.5" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
                   <div>
-                    <label className="block text-xs mb-1 tracking-widest uppercase" style={{ fontFamily: "'DM Mono', monospace", color: "#3d3d39" }}>Sex</label>
-                    <select value={inp.sex} onChange={(e) => setInp((p) => ({ ...p, sex: e.target.value }))} className="w-full rounded-lg px-3 py-2 text-sm outline-none transition-all duration-200" style={{ border: "1px solid rgba(255,255,255,0.07)", background: "rgba(255,255,255,0.04)", color: "#e8e3dc", fontFamily: "'Outfit', sans-serif" }}>
+                    <label className="block text-sm font-semibold mb-1 tracking-widest uppercase" style={{ fontFamily: "'DM Mono', monospace", color: "#475569" }}>Sex</label>
+                    <select value={inp.sex} onChange={(e) => setInp((p) => ({ ...p, sex: e.target.value }))} className="w-full rounded-lg px-3.5 py-2.5 text-base font-semibold outline-none transition-all duration-200" style={{ border: "1px solid #94a3b8", background: "#e2e8f0", color: "#0f172a", fontFamily: "'Outfit', sans-serif" }}>
                       <option value="male">Male</option>
                       <option value="female">Female</option>
                     </select>
@@ -461,8 +615,8 @@ export default function BioAge({ onBack }) {
                 <div className="mt-2.5 grid gap-2.5" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
                   {FIELDS.map((f) => (
                     <div key={f.key}>
-                      <label className="block text-xs mb-1 tracking-widest uppercase" style={{ fontFamily: "'DM Mono', monospace", color: "#3d3d39" }}>
-                        {f.label} <span style={{ color: "#2a2a26" }}>{f.unit}</span>
+                      <label className="block text-sm font-semibold mb-1 tracking-widest uppercase" style={{ fontFamily: "'DM Mono', monospace", color: "#475569" }}>
+                        {f.label} <span style={{ color: "#94a3b8" }}>{f.unit}</span>
                       </label>
                       <input
                         type="number"
@@ -472,10 +626,10 @@ export default function BioAge({ onBack }) {
                         value={inp[f.key]}
                         onChange={(e) => setInp((p) => ({ ...p, [f.key]: parseFloat(e.target.value) || p[f.key] }))}
                         disabled={!allowEdit && sourceMode === "database"}
-                        className="w-full rounded-lg px-3 py-2 text-sm outline-none transition-all duration-200"
-                        style={{ border: "1px solid rgba(255,255,255,0.07)", background: "rgba(255,255,255,0.04)", color: "#e8e3dc", fontFamily: "'Outfit', sans-serif" }}
-                        onFocus={(e) => (e.target.style.borderColor = "rgba(212,92,41,0.45)")}
-                        onBlur={(e) => (e.target.style.borderColor = "rgba(255,255,255,0.07)")}
+                        className="w-full rounded-lg px-3.5 py-2.5 text-base font-semibold outline-none transition-all duration-200"
+                        style={{ border: "1px solid #94a3b8", background: "#e2e8f0", color: "#0f172a", fontFamily: "'Outfit', sans-serif" }}
+                        onFocus={(e) => (e.target.style.borderColor = "rgba(14,165,233,0.55)")}
+                        onBlur={(e) => (e.target.style.borderColor = "#94a3b8")}
                       />
                     </div>
                   ))}
@@ -491,10 +645,10 @@ export default function BioAge({ onBack }) {
           </div>
         </div>
 
-        <div className="max-w-screen-xl mx-auto px-14 pb-16">
+        <div className="w-[70%] mx-auto px-14 pb-16">
           <button
             className="w-full py-4 rounded-2xl text-base font-semibold text-white flex items-center justify-center gap-2.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{ background: "linear-gradient(135deg, #d45c29 0%, #b8481f 100%)", fontFamily: "'Outfit', sans-serif", letterSpacing: "-0.01em", boxShadow: "0 4px 24px rgba(212,92,41,0.25)" }}
+            style={{ background: "linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)", fontFamily: "'Outfit', sans-serif", letterSpacing: "-0.01em", boxShadow: "0 4px 24px rgba(2,132,199,0.24)" }}
             onClick={handleAnalyze}
             disabled={analyzing || !sourceMode}
           >
@@ -503,28 +657,37 @@ export default function BioAge({ onBack }) {
         </div>
 
         {report && (
-          <div ref={resultsRef} className="max-w-screen-xl mx-auto px-14 pb-24 ph-results">
-            <hr style={{ border: "none", borderTop: "1px solid rgba(255,255,255,0.05)", marginBottom: 56 }} />
+          <div ref={resultsRef} className="w-[70%] mx-auto px-14 pb-24 ph-results">
+            <hr style={{ border: "none", borderTop: "1px solid #cbd5e1", marginBottom: 56 }} />
 
             {ageOutput && (
-              <div className="rounded-2xl p-5 mb-8" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)" }}>
-                <div className="text-xs uppercase tracking-widest mb-3" style={{ fontFamily: "'DM Mono', monospace", color: "#d45c29" }}>AGE.py Output</div>
-                <pre className="text-sm whitespace-pre-wrap" style={{ color: "#e8e3dc", fontFamily: "'DM Mono', monospace" }}>{ageOutput}</pre>
+              <div className="rounded-2xl p-5 mb-8" style={{ background: "#ffffff", border: "1px solid #dbeafe", boxShadow: "0 6px 18px rgba(2,132,199,0.08)" }}>
+                <div className="text-lg uppercase tracking-widest mb-3" style={{ fontFamily: "'DM Mono', monospace", color: "#0284c7" }}>AGE.py Output</div>
+                <pre className="text-xl whitespace-pre-wrap" style={{ color: "#0f172a", fontFamily: "'DM Mono', monospace", lineHeight: "1.85" }}>{ageOutput}</pre>
               </div>
             )}
 
-            <div className="flex items-center gap-3.5 mb-5 text-xs uppercase tracking-widest ph-section-label" style={{ fontFamily: "'DM Mono', monospace", color: "#d45c29" }}>Summary</div>
+            <div className="flex items-center gap-3.5 mb-5 text-sm uppercase tracking-widest ph-section-label" style={{ fontFamily: "'DM Mono', monospace", color: "#0284c7" }}>Summary</div>
             <div className="grid grid-cols-4 gap-4 mb-14">
               {[
-                { label: "Chronological Age", value: `${report.age}`, sub: "years old", color: "#e8e3dc" },
+                { label: "Chronological Age", value: `${report.age}`, sub: "years old", color: "#0f172a" },
                 { label: "Biological Age", value: `${report.pheno_age}`, sub: "phenotypic years", color: gc },
                 { label: "Age Gap", value: `${report.gap > 0 ? "+" : ""}${report.gap}`, sub: null, color: gc, aging: report.aging },
                 { label: "Health Score", value: `${report.health}`, sub: "out of 100", color: hc },
               ].map((m, i) => (
-                <div key={i} className="rounded-2xl px-6 py-7" style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.06)" }}>
-                  <div className="text-xs mb-3 tracking-widest uppercase" style={{ fontFamily: "'DM Mono', monospace", color: "#3d3d39" }}>{m.label}</div>
-                  <div className="text-5xl font-bold mb-2 leading-none" style={{ fontFamily: "'DM Mono', monospace", color: m.color }}>{m.value}</div>
-                  {m.sub && <div className="text-xs" style={{ color: "#3d3d39" }}>{m.sub}</div>}
+                <div
+                  key={i}
+                  className="rounded-2xl px-6 py-7"
+                  style={{
+                    background: m.label === "Biological Age" ? "linear-gradient(135deg, #f0f9ff 0%, #ffffff 100%)" : "#ffffff",
+                    border: m.label === "Biological Age" ? "2px solid rgba(14,165,233,0.55)" : "1px solid #dbeafe",
+                    boxShadow: m.label === "Biological Age" ? "0 10px 26px rgba(2,132,199,0.2)" : "0 6px 18px rgba(2,132,199,0.08)",
+                    transform: m.label === "Biological Age" ? "translateY(-3px)" : "none",
+                  }}
+                >
+                  <div className="text-sm mb-3 tracking-widest uppercase" style={{ fontFamily: "'DM Mono', monospace", color: m.label === "Biological Age" ? "#0369a1" : "#64748b" }}>{m.label}</div>
+                  <div className="text-6xl font-bold mb-2 leading-none" style={{ fontFamily: "'DM Mono', monospace", color: m.color }}>{m.value}</div>
+                  {m.sub && <div className="text-sm" style={{ color: "#64748b" }}>{m.sub}</div>}
                   {m.aging && (
                     <div className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full mt-2" style={{ fontFamily: "'DM Mono', monospace", background: report.gap > 5 ? "rgba(239,68,68,0.1)" : report.gap < -5 ? "rgba(34,197,94,0.1)" : "rgba(245,158,11,0.1)", color: gc }}>
                       <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: gc }} />
@@ -535,40 +698,49 @@ export default function BioAge({ onBack }) {
               ))}
             </div>
 
-            <div className="flex items-center gap-3.5 mb-5 text-xs uppercase tracking-widest ph-section-label" style={{ fontFamily: "'DM Mono', monospace", color: "#d45c29" }}>Biomarkers & Disease Risks</div>
+            <div className="flex items-center gap-3.5 mb-5 text-sm uppercase tracking-widest ph-section-label" style={{ fontFamily: "'DM Mono', monospace", color: "#0284c7" }}>Biomarkers & Disease Risks</div>
             <div className="grid gap-5 mb-14" style={{ gridTemplateColumns: "400px 1fr" }}>
-              <div className="rounded-2xl p-6" style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
+              <div className="rounded-2xl p-6" style={{ background: "#ffffff", border: "1px solid #dbeafe", boxShadow: "0 6px 18px rgba(2,132,199,0.08)" }}>
                 {report.bios.map((b, i) => {
                   const cfg = BIO_CFG[b.status];
                   return (
-                    <div key={i} className="flex items-center gap-3 py-2.5" style={{ borderBottom: i < report.bios.length - 1 ? "1px solid rgba(255,255,255,0.04)" : "none" }}>
-                      <div className="text-sm w-28 flex-shrink-0" style={{ color: "#a0a09a" }}>{b.name}</div>
-                      <div className="text-xs w-16 flex-shrink-0 text-right" style={{ fontFamily: "'DM Mono', monospace", color: cfg.color }}>{b.value}</div>
-                      <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.07)" }}>
+                    <div key={i} className="flex items-center gap-3 py-2.5" style={{ borderBottom: i < report.bios.length - 1 ? "1px solid #e2e8f0" : "none" }}>
+                      <div className="text-base w-28 flex-shrink-0" style={{ color: "#334155" }}>{b.name}</div>
+                      <div className="text-sm w-16 flex-shrink-0 text-right" style={{ fontFamily: "'DM Mono', monospace", color: cfg.color }}>{b.value}</div>
+                      <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: "#e2e8f0" }}>
                         <div className="h-full rounded-full" style={{ width: `${barW[b.name] || 0}%`, background: cfg.bar, transition: "width 1s cubic-bezier(.4,0,.2,1)" }} />
                       </div>
-                      <span className="text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0 tracking-wide" style={{ fontFamily: "'DM Mono', monospace", background: cfg.bg, color: cfg.color }}>{cfg.label}</span>
+                      <span className="text-sm font-bold px-2 py-0.5 rounded-full flex-shrink-0 tracking-wide" style={{ fontFamily: "'DM Mono', monospace", background: cfg.bg, color: cfg.color }}>{cfg.label}</span>
                     </div>
                   );
                 })}
               </div>
 
-              <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
+              <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
                 {report.diseases.map((d, i) => <DiseaseCard key={i} d={d} idx={i} visible={!!report} />)}
               </div>
             </div>
 
-            <div className="flex items-center gap-3.5 mb-5 text-xs uppercase tracking-widest ph-section-label" style={{ fontFamily: "'DM Mono', monospace", color: "#d45c29" }}>Priority Actions</div>
+            <div className="flex items-center gap-3.5 mb-5 text-sm uppercase tracking-widest ph-section-label" style={{ fontFamily: "'DM Mono', monospace", color: "#0284c7" }}>Priority Actions</div>
             <div className="grid grid-cols-3 gap-3">
               {report.allRecs.map((r, i) => (
-                <div key={i} className="rounded-2xl px-5 py-5 flex gap-3.5 items-start" style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
-                  <div className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0" style={{ fontFamily: "'DM Mono', monospace", background: "rgba(212,92,41,0.12)", border: "1px solid rgba(212,92,41,0.22)", color: "#d45c29" }}>{i + 1}</div>
-                  <div className="text-sm leading-relaxed" style={{ color: "#6b6b64" }}>{r}</div>
+                <div key={i} className="rounded-2xl px-5 py-5 flex gap-3.5 items-start" style={{ background: "#ffffff", border: "1px solid #dbeafe", boxShadow: "0 6px 18px rgba(2,132,199,0.08)" }}>
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold flex-shrink-0" style={{ fontFamily: "'DM Mono', monospace", background: "rgba(14,165,233,0.12)", border: "1px solid rgba(14,165,233,0.22)", color: "#0284c7" }}>{i + 1}</div>
+                  <div className="text-lg leading-relaxed" style={{ color: "#334155" }}>{r}</div>
                 </div>
               ))}
             </div>
 
-            <div className="text-center text-xs mt-14" style={{ color: "#2a2a26" }}>⚠ For informational purposes only — not a medical diagnosis. Always consult a licensed physician.</div>
+            <div className="mt-10 rounded-2xl px-6 py-6" style={{ background: "linear-gradient(135deg, #d6f0ff 0%, #d9f7f3 100%)", border: "1px solid #7dd3fc", boxShadow: "0 8px 20px rgba(14,165,233,0.14)" }}>
+              <div className="text-base uppercase tracking-widest mb-4" style={{ fontFamily: "'DM Mono', monospace", color: "#0369a1" }}>
+                Health Summary
+              </div>
+              <p className="text-lg leading-9" style={{ color: "#0f172a" }}>
+                {healthSummaryText}
+              </p>
+            </div>
+
+            <div className="text-center text-xs mt-14" style={{ color: "#64748b" }}>For informational purposes only - not a medical diagnosis. Always consult a licensed physician.</div>
           </div>
         )}
       </div>

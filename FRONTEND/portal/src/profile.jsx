@@ -25,6 +25,7 @@ import {
   X,
   Save,
 } from 'lucide-react';
+import DashboardSidebar from './DashboardSidebar.jsx';
 
 export default function PatientProfile({ onBack, onNavigateToHealth, onNavigateToSchedule, onNavigateToUpload, onNavigateToBooking, onNavigateToMain }) {
   // Default static data fallback
@@ -288,55 +289,8 @@ export default function PatientProfile({ onBack, onNavigateToHealth, onNavigateT
 
   return (
     <>
-    <div className="h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 flex items-center justify-center p-6 gap-6">
-      {/* Floating Sidebar */}
-      <div className="flex-shrink-0 flex items-center">
-        <div className="bg-gradient-to-b from-teal-400 via-teal-500 to-cyan-400 rounded-full p-3 shadow-2xl w-fit h-fit">
-          <div className="flex flex-col items-center gap-6 py-12 px-2">
-            {sidebarIcons.map((item, index) => {
-              const Icon = item.icon;
-              const isActive = activeIcon === index;
-              const isTopSection = index < 3;
-              
-              return (
-                <button
-                  key={index}
-                  onClick={() => {
-                    if (index === 0) {
-                      onNavigateToMain();
-                    } else if (index === 1) {
-                      onNavigateToHealth();
-                    } else if (index === 2) {
-                      onNavigateToUpload?.();
-                    } else if (index === 3) {
-                      onNavigateToBooking?.();
-                    } else if (index === 4) {
-                      onNavigateToSchedule();
-                    } else if (index === 5) {
-                      setActiveIcon(index);
-                    } else {
-                      setActiveIcon(index);
-                    }
-                  }}
-                  className={`w-16 h-16 rounded-full flex items-center justify-center transition-all ${
-                    isActive 
-                      ? 'bg-white shadow-lg scale-110' 
-                      : 'hover:bg-white/20'
-                  }`}
-                >
-                  <Icon 
-                    className={`w-7 h-7 ${
-                      isActive 
-                        ? isTopSection ? 'text-teal-500' : 'text-gray-400'
-                        : 'text-white'
-                    }`} 
-                  />
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
+    <div className="h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 flex items-center justify-center p-6 pl-40 gap-6">
+      <DashboardSidebar activePath="/profile" />
 
       {/* Main Content Container */}
       <div className="flex-1 bg-white rounded-3xl shadow-lg overflow-hidden flex flex-col h-full">

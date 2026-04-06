@@ -2,6 +2,7 @@ import io
 import os
 import json
 import tempfile
+from dataclasses import asdict
 from datetime import datetime
 from typing import Optional
 from fastapi import APIRouter, Depends, Form, File, UploadFile, HTTPException
@@ -19,6 +20,7 @@ from app.database import get_db
 from app import crud
 from app.MODELS.OCR import run_ocr, extract_values
 from app.MODELS.AGE import calculate_pheno_age
+from app.MODELS.RISK import get_risk_report
 
 router = APIRouter(prefix="/reports", tags=["Reports"])
 
@@ -146,6 +148,21 @@ class BioAgeAnalyzeRequest(BaseModel):
     white_blood_cell_count: float
 
 
+class BioRiskAnalyzeRequest(BaseModel):
+    age: float
+    albumin: float
+    creatinine: float
+    glucose_mgdl: float
+    crp: float
+    lymphocyte_percent: float
+    mean_cell_volume: float
+    red_cell_dist_width: float
+    alkaline_phosphatase: float
+    white_blood_cell_count: float
+    sex: str = "male"
+    biological_age: float
+
+
 @router.get("/heabo-reports/latest")
 def get_latest_heabo_report(user_email: str, db: Session = Depends(get_db)):
     sql = text(
@@ -225,6 +242,35 @@ def analyze_heabo_age(payload: BioAgeAnalyzeRequest):
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Age analysis failed: {str(e)}")
+
+
+@router.post("/heabo-reports/analyze-risk")
+def analyze_heabo_risk(payload: BioRiskAnalyzeRequest):
+    try:
+        risk_report = get_risk_report(
+            age=int(round(payload.age)),
+            albumin=float(payload.albumin),
+            creatinine=float(payload.creatinine),
+            glucose=float(payload.glucose_mgdl),
+            crp=float(payload.crp),
+            lymphocyte_pct=float(payload.lymphocyte_percent),
+            mcv=float(payload.mean_cell_volume),
+            rdw=float(payload.red_cell_dist_width),
+            alp=float(payload.alkaline_phosphatase),
+            wbc=float(payload.white_blood_cell_count),
+            sex=payload.sex,
+            pheno_age=float(payload.biological_age),
+        )
+
+        return {
+            "success": True,
+            "message": "Risk analysis completed",
+            "data": asdict(risk_report),
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Risk analysis failed: {str(e)}")
 
 
 @router.post("/ocr-extract")

@@ -49,7 +49,7 @@ export default function LoginPage() {
         localStorage.setItem("userRole", role);
 
         // Navigate to Home_page
-        navigate("/home");
+        navigate("/home", { replace: true });
         // Clear form
         setForm({ email: "", password: "" });
       } else {

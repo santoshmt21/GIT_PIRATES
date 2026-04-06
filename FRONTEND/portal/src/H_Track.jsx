@@ -20,6 +20,7 @@ import heartBeat from './heart_beat.png';
 import BP from './BP.png';
 import Weight_1 from './Weight.png';
 import Oxygen_Level from './Oxygen_Level.png';
+import DashboardSidebar from './DashboardSidebar.jsx';
 
 
 export default function HealthDashboard({ onBack, onNavigateToSchedule, onNavigateToProfile, onNavigateToUpload, onNavigateToBooking }) {
@@ -403,57 +404,10 @@ export default function HealthDashboard({ onBack, onNavigateToSchedule, onNaviga
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      {/* Fixed Floating Circular Sidebar */}
-      <div className="fixed left-8 top-1/2 -translate-y-1/2 z-50">
-        <div className="bg-gradient-to-b from-teal-400 via-teal-500 to-cyan-400 rounded-full p-3 shadow-2xl w-fit h-fit">
-          <div className="flex flex-col items-center gap-6 py-12 px-2">
-            {sidebarIcons.map((item, index) => {
-              const Icon = item.icon;
-              const isActive = activeIcon === index;
-              const isTopSection = index < 3;
-              
-              return (
-                <button
-                  key={index}
-                  onClick={() => {
-                    if (index === 0) {
-                      onBack();
-                    } else if (index === 1) {
-                      setActiveIcon(index);
-                    } else if (index === 2) {
-                      onNavigateToUpload?.();
-                    } else if (index === 3) {
-                      onNavigateToBooking?.();
-                    } else if (index === 4) {
-                      onNavigateToSchedule();
-                    } else if (index === 5) {
-                      onNavigateToProfile();
-                    } else {
-                      setActiveIcon(index);
-                    }
-                  }}
-                  className={`w-16 h-16 rounded-full flex items-center justify-center transition-all ${
-                    isActive 
-                      ? 'bg-white shadow-lg scale-110' 
-                      : 'hover:bg-white/20'
-                  }`}
-                >
-                  <Icon 
-                    className={`w-7 h-7 ${
-                      isActive 
-                        ? isTopSection ? 'text-teal-500' : 'text-gray-400'
-                        : 'text-white'
-                    }`} 
-                  />
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
+      <DashboardSidebar activePath="/health" />
 
       {/* Main Content */}
-      <div className="flex-1 ml-32 transition-all duration-300">
+      <div className="flex-1 ml-40 transition-all duration-300">
         <div className="p-8">
           {/* Header */}
           <div className="mb-8">
