@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: medilink-backend
+    env: python
+    region: singapore # Change to your preferred region: oregon, frankfurt, singapore, etc.
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: DATABASE_URL
+        sync: false # You'll need to add this manually in Render dashboard
