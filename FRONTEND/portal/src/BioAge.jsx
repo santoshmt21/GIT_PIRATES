@@ -417,6 +417,12 @@ export default function BioAge({ onBack }) {
       return;
     }
 
+    const userEmail = localStorage.getItem("userEmail") || "";
+    if (!userEmail) {
+      setSourceError("User email not found. Please log in again.");
+      return;
+    }
+
     setAnalyzing(true);
     setSourceError("");
     setReport(null);
@@ -424,6 +430,7 @@ export default function BioAge({ onBack }) {
 
     try {
       const payload = {
+        user_email: userEmail,
         age: Number(inp.age),
         albumin: Number(inp.albumin),
         creatinine: Number(inp.creatinine),

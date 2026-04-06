@@ -136,6 +136,7 @@ def _normalize_wbc_for_age(value):
 
 
 class BioAgeAnalyzeRequest(BaseModel):
+    user_email: str
     age: float
     albumin: float
     creatinine: float
@@ -161,6 +162,11 @@ class BioRiskAnalyzeRequest(BaseModel):
     white_blood_cell_count: float
     sex: str = "male"
     biological_age: float
+
+
+class WeightRecordCreateRequest(BaseModel):
+    user_email: str
+    weight: float
 
 
 @router.get("/heabo-reports/latest")
@@ -206,8 +212,58 @@ def get_latest_heabo_report(user_email: str, db: Session = Depends(get_db)):
     }
 
 
+@router.get("/heabo-reports/age-trend")
+def get_heabo_age_trend(user_email: str, days: int = 90, db: Session = Depends(get_db)):
+    try:
+        sql = text(
+            """
+            SELECT
+                id,
+                created_at,
+                chronological_age,
+                biological_age
+            FROM chrono
+            WHERE user_gmail = :user_email
+              AND created_at >= NOW() - (:days || ' days')::interval
+            ORDER BY created_at ASC, id ASC
+            """
+        )
+
+        rows = db.execute(sql, {"user_email": user_email, "days": days}).mappings().all()
+        trend_data = []
+        for row in rows:
+            created_at = row["created_at"]
+            report_date = created_at.date() if hasattr(created_at, "date") else created_at
+            chronological_age = float(row["chronological_age"])
+            biological_age = float(row["biological_age"])
+
+            trend_data.append(
+                {
+                    "id": row["id"],
+                    "report_date": str(report_date),
+                    "chronological_age": chronological_age,
+                    "biological_age": biological_age,
+                    "age_gap": round(biological_age - chronological_age, 1),
+                    "interpretation": "Computed from saved chrono trend",
+                }
+            )
+
+        return {
+            "success": True,
+            "message": "Age trend fetched successfully",
+            "data": trend_data,
+            "meta": {
+                "total_rows": len(rows),
+                "valid_rows": len(trend_data),
+                "skipped_rows": 0,
+            },
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Age trend fetch failed: {str(e)}")
+
+
 @router.post("/heabo-reports/analyze-age")
-def analyze_heabo_age(payload: BioAgeAnalyzeRequest):
+def analyze_heabo_age(payload: BioAgeAnalyzeRequest, db: Session = Depends(get_db)):
     try:
         result = calculate_pheno_age(
             age=payload.age,
@@ -222,6 +278,23 @@ def analyze_heabo_age(payload: BioAgeAnalyzeRequest):
             white_blood_cell_count=_normalize_wbc_for_age(payload.white_blood_cell_count),
         )
 
+        insert_sql = text(
+            """
+            INSERT INTO chrono (user_gmail, chronological_age, biological_age, created_at)
+            VALUES (:user_gmail, :chronological_age, :biological_age, NOW())
+            RETURNING id
+            """
+        )
+
+        insert_params = {
+            "user_gmail": payload.user_email,
+            "chronological_age": float(result["chronological_age"]),
+            "biological_age": float(result["biological_age"]),
+        }
+
+        inserted_id = db.execute(insert_sql, insert_params).scalar_one()
+        db.commit()
+
         output_lines = [
             f"Chronological age : {result['chronological_age']} years",
             f"Biological age    : {result['biological_age']} years",
@@ -235,6 +308,7 @@ def analyze_heabo_age(payload: BioAgeAnalyzeRequest):
             "message": "Age analysis completed",
             "data": {
                 **result,
+                "chrono_record_id": inserted_id,
                 "formatted_output": "\n".join(output_lines),
             },
         }
@@ -534,6 +608,39 @@ def get_weight_records(gmail: str, db: Session = Depends(get_db)):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch weight records: {str(e)}")
+
+
+@router.post("/weight-records")
+def create_weight_record(payload: WeightRecordCreateRequest, db: Session = Depends(get_db)):
+    """Create a new weight record with today's date for a user."""
+    try:
+        if not payload.user_email:
+            raise HTTPException(status_code=400, detail="user_email is required")
+
+        if payload.weight is None or float(payload.weight) <= 0:
+            raise HTTPException(status_code=400, detail="weight must be greater than 0")
+
+        record = crud.create_weight_record(
+            db,
+            user_email=payload.user_email,
+            record_date=dt_date.today(),
+            weight=float(payload.weight),
+        )
+
+        return {
+            "success": True,
+            "message": "Weight record created successfully",
+            "data": {
+                "id": record.id,
+                "user_email": record.user_email,
+                "record_date": str(record.record_date),
+                "weight": float(record.weight),
+            },
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to create weight record: {str(e)}")
 
 
 

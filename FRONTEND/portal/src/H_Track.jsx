@@ -33,6 +33,11 @@ export default function HealthDashboard({ onBack, onNavigateToSchedule, onNaviga
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedTimeRange, setSelectedTimeRange] = useState('7D');
+  const [ageTrendData, setAgeTrendData] = useState([]);
+  const [ageTrendLoading, setAgeTrendLoading] = useState(true);
+  const [ageTrendError, setAgeTrendError] = useState(null);
+  const [ageTrendCondition, setAgeTrendCondition] = useState('');
+  const [ageTrendBadge, setAgeTrendBadge] = useState(null);
   
   // Blood Pressure Data State
   const [bloodPressureData, setBloodPressureData] = useState([]);
@@ -62,6 +67,20 @@ export default function HealthDashboard({ onBack, onNavigateToSchedule, onNaviga
     weightUpdated: null
   });
 
+  const [showAddReadingModal, setShowAddReadingModal] = useState(false);
+  const [showAddWeightModal, setShowAddWeightModal] = useState(false);
+  const [newWeight, setNewWeight] = useState('');
+  const [savingWeight, setSavingWeight] = useState(false);
+  const [bodyMetrics, setBodyMetrics] = useState({
+    age: 30,
+    height: 178,
+    bmi: 23.7,
+    bodyFat: 18.5,
+    muscleMass: 62,
+    water: 58,
+  });
+  const [bodyReadingDraft, setBodyReadingDraft] = useState(bodyMetrics);
+
   const sidebarIcons = [
     { icon: Home },
     { icon: Heart },
@@ -77,6 +96,7 @@ export default function HealthDashboard({ onBack, onNavigateToSchedule, onNaviga
     fetchBloodPressureData();
     fetchWeightData();
     fetchCbcData();
+    fetchAgeTrendData();
   }, [selectedTimeRange]);
 
   const fetchHeartRateData = async () => {
@@ -402,6 +422,212 @@ export default function HealthDashboard({ onBack, onNavigateToSchedule, onNaviga
     }
   };
 
+  const getShortTrendSummary = () => {
+    if (!ageTrendData || ageTrendData.length < 2) {
+      return 'Add one more reading to get a clear trend summary.';
+    }
+
+    const first = ageTrendData[0];
+    const latest = ageTrendData[ageTrendData.length - 1];
+    const bioDelta = Number(latest.biologicalAge) - Number(first.biologicalAge);
+    const gapDelta = Number(latest.gap) - Number(first.gap);
+
+    if (bioDelta < 0 && gapDelta <= 0) {
+      return `Biological age decreased by ${Math.abs(bioDelta).toFixed(1)} years. This is a good trend - great job, keep going.`;
+    }
+
+    if (bioDelta > 0 || gapDelta > 0) {
+      return `Biological age increased by ${Math.abs(bioDelta).toFixed(1)} years. This trend needs attention, but with consistent habits you can improve it.`;
+    }
+
+    return 'Your aging trend is stable. Good consistency - continue your current healthy routine.';
+  };
+
+  const fetchAgeTrendData = async () => {
+    setAgeTrendLoading(true);
+    setAgeTrendError(null);
+
+    try {
+      const userEmail = localStorage.getItem('userEmail');
+      if (!userEmail) {
+        setAgeTrendError('User email not found. Please log in again.');
+        setAgeTrendLoading(false);
+        return;
+      }
+
+      const daysMap = { '7D': 7, '30D': 30, '90D': 90 };
+      const days = daysMap[selectedTimeRange] || 30;
+
+      const response = await fetch(
+        `http://127.0.0.1:8000/reports/heabo-reports/age-trend?user_email=${encodeURIComponent(userEmail)}&days=${days}`
+      );
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch age trend: ${response.status}`);
+      }
+
+      const responseData = await response.json();
+      const rows = responseData?.data || [];
+
+      const chartData = rows.map((item) => ({
+        date: formatDate(item.report_date),
+        fullDate: item.report_date,
+        chronologicalAge: Number(item.chronological_age),
+        biologicalAge: Number(item.biological_age),
+        gap: Number(item.age_gap),
+      }));
+
+      setAgeTrendData(chartData);
+
+      if (chartData.length >= 2) {
+        const prev = chartData[chartData.length - 2].gap;
+        const curr = chartData[chartData.length - 1].gap;
+        const delta = curr - prev;
+        const base = Math.max(0.1, Math.abs(prev));
+        const pct = Math.abs((delta / base) * 100);
+
+        if (delta < 0) {
+          setAgeTrendCondition(`Aging gap decreased by ${pct.toFixed(1)}% vs previous reading. Current condition is improving.`);
+          setAgeTrendBadge({
+            text: `Improved ${pct.toFixed(1)}%`,
+            className: 'bg-emerald-100 text-emerald-700',
+          });
+        } else if (delta > 0) {
+          setAgeTrendCondition(`Aging gap increased by ${pct.toFixed(1)}% vs previous reading. Current condition needs attention.`);
+          setAgeTrendBadge({
+            text: `Declined ${pct.toFixed(1)}%`,
+            className: 'bg-red-100 text-red-700',
+          });
+        } else {
+          setAgeTrendCondition('Aging gap is unchanged from previous reading. Condition is stable.');
+          setAgeTrendBadge({
+            text: 'Stable 0.0%',
+            className: 'bg-slate-100 text-slate-700',
+          });
+        }
+      } else if (chartData.length === 1) {
+        setAgeTrendCondition('Only one age reading available. Add another report to see trend change.');
+        setAgeTrendBadge({
+          text: 'Need Previous Data',
+          className: 'bg-amber-100 text-amber-700',
+        });
+      } else {
+        setAgeTrendCondition('No age trend data available for this period.');
+        setAgeTrendBadge(null);
+      }
+    } catch (err) {
+      console.error('Error fetching age trend data:', err);
+      setAgeTrendError(err.message || 'Failed to load age trend data');
+      setAgeTrendData([]);
+      setAgeTrendCondition('');
+      setAgeTrendBadge(null);
+    } finally {
+      setAgeTrendLoading(false);
+    }
+  };
+
+  const getAgeReferenceMetrics = (age) => {
+    if (age < 30) {
+      return { height: 172, bmi: 22.0, bodyFat: 17.0, muscleMass: 66, water: 60 };
+    }
+    if (age < 45) {
+      return { height: 171, bmi: 23.5, bodyFat: 20.0, muscleMass: 62, water: 58 };
+    }
+    if (age < 60) {
+      return { height: 170, bmi: 24.5, bodyFat: 23.0, muscleMass: 58, water: 56 };
+    }
+    return { height: 168, bmi: 25.5, bodyFat: 26.0, muscleMass: 54, water: 54 };
+  };
+
+  const bodyMetricConfig = [
+    { key: 'height', label: 'Height', unit: 'cm', color: 'bg-blue-500', rangeMax: 220 },
+    { key: 'bmi', label: 'BMI', unit: '', color: 'bg-green-500', rangeMax: 40 },
+    { key: 'bodyFat', label: 'Body Fat', unit: '%', color: 'bg-yellow-500', rangeMax: 45 },
+    { key: 'muscleMass', label: 'Muscle Mass', unit: 'kg', color: 'bg-purple-500', rangeMax: 100 },
+    { key: 'water', label: 'Water %', unit: '%', color: 'bg-cyan-500', rangeMax: 80 },
+  ];
+
+  const ageAverages = getAgeReferenceMetrics(bodyMetrics.age);
+
+  const clampPercent = (value) => Math.max(0, Math.min(100, value));
+
+  const formatMetricValue = (key, value) => {
+    if (key === 'height') return `${Math.round(value)} cm`;
+    if (key === 'bmi') return value.toFixed(1);
+    if (key === 'bodyFat') return `${value.toFixed(1)}%`;
+    if (key === 'muscleMass') return `${value.toFixed(1)} kg`;
+    if (key === 'water') return `${value.toFixed(1)}%`;
+    return `${value}`;
+  };
+
+  const openAddReadingModal = () => {
+    setBodyReadingDraft({ ...bodyMetrics });
+    setShowAddReadingModal(true);
+  };
+
+  const handleDraftChange = (key, value) => {
+    setBodyReadingDraft((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const saveBodyReading = () => {
+    const normalized = {
+      age: Number(bodyReadingDraft.age) || bodyMetrics.age,
+      height: Number(bodyReadingDraft.height) || bodyMetrics.height,
+      bmi: Number(bodyReadingDraft.bmi) || bodyMetrics.bmi,
+      bodyFat: Number(bodyReadingDraft.bodyFat) || bodyMetrics.bodyFat,
+      muscleMass: Number(bodyReadingDraft.muscleMass) || bodyMetrics.muscleMass,
+      water: Number(bodyReadingDraft.water) || bodyMetrics.water,
+    };
+    setBodyMetrics(normalized);
+    setShowAddReadingModal(false);
+  };
+
+  const openAddWeightModal = () => {
+    setNewWeight(latestMetrics.weight ? String(parseFloat(latestMetrics.weight).toFixed(1)) : '');
+    setShowAddWeightModal(true);
+  };
+
+  const saveWeightEntry = async () => {
+    const userEmail = localStorage.getItem('userEmail');
+    if (!userEmail) {
+      setWeightError('User email not found. Please log in again.');
+      return;
+    }
+
+    const parsedWeight = Number(newWeight);
+    if (!parsedWeight || parsedWeight <= 0) {
+      setWeightError('Please enter a valid weight value.');
+      return;
+    }
+
+    setSavingWeight(true);
+    setWeightError(null);
+
+    try {
+      const response = await fetch('http://127.0.0.1:8000/reports/weight-records', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_email: userEmail,
+          weight: parsedWeight,
+        }),
+      });
+
+      const responseData = await response.json();
+      if (!response.ok || !responseData?.success) {
+        throw new Error(responseData?.detail || responseData?.message || 'Failed to save weight record');
+      }
+
+      setShowAddWeightModal(false);
+      setNewWeight('');
+      await fetchWeightData();
+    } catch (err) {
+      setWeightError(err.message || 'Failed to save weight record');
+    } finally {
+      setSavingWeight(false);
+    }
+  };
+
   return (
     <div className="flex min-h-screen bg-gray-50">
       <DashboardSidebar activePath="/health" />
@@ -416,16 +642,15 @@ export default function HealthDashboard({ onBack, onNavigateToSchedule, onNaviga
           </div>
 
           {/* Time Filter Buttons */}
-          <div className="flex items-center justify-between mb-8">
-            <div className="flex gap-2">
-              <button className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium">Today</button>
-              <button className="px-6 py-2 bg-white text-gray-700 rounded-lg font-medium hover:bg-gray-50">This Week</button>
-              <button className="px-6 py-2 bg-white text-gray-700 rounded-lg font-medium hover:bg-gray-50">This Month</button>
-              <button className="px-6 py-2 bg-white text-gray-700 rounded-lg font-medium hover:bg-gray-50">Custom</button>
-            </div>
+          <div className="flex items-center justify-end mb-8">
             <div className="flex items-center gap-4">
               <span className="text-gray-700 font-medium">December 2024</span>
-              <button className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium">+ Add Reading</button>
+              <button
+                onClick={openAddReadingModal}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700"
+              >
+                + Add Reading
+              </button>
             </div>
           </div>
 
@@ -515,14 +740,20 @@ export default function HealthDashboard({ onBack, onNavigateToSchedule, onNaviga
 
           {/* Charts Section */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-            {/* Heart Rate Trend */}
+            {/* Aging Trend */}
             <div className="lg:col-span-2 bg-white rounded-xl shadow-sm p-6">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900">Heart Rate Trend</h3>
+                  <h3 className="text-xl font-bold text-gray-900">Aging Trend (Chronological vs Biological)</h3>
                   <p className="text-gray-600 text-sm">{getTimeRangeLabel()}</p>
+                  {ageTrendCondition && <p className="text-xs mt-1 text-indigo-700 font-medium">{ageTrendCondition}</p>}
                 </div>
                 <div className="flex gap-2">
+                  {ageTrendBadge && (
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${ageTrendBadge.className}`}>
+                      {ageTrendBadge.text}
+                    </span>
+                  )}
                   <button 
                     onClick={() => setSelectedTimeRange('7D')}
                     className={`px-3 py-1 rounded transition-colors ${
@@ -557,23 +788,23 @@ export default function HealthDashboard({ onBack, onNavigateToSchedule, onNaviga
               </div>
               
               {/* Loading State */}
-              {loading && (
+              {ageTrendLoading && (
                 <div className="h-64 flex items-center justify-center">
                   <div className="text-center">
                     <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-2"></div>
-                    <p className="text-gray-500">Loading heart rate data...</p>
+                    <p className="text-gray-500">Loading age trend data...</p>
                   </div>
                 </div>
               )}
 
               {/* Error State */}
-              {error && !loading && (
+              {ageTrendError && !ageTrendLoading && (
                 <div className="h-64 flex items-center justify-center">
                   <div className="text-center">
                     <p className="text-red-600 text-sm font-medium">Failed to load data</p>
-                    <p className="text-gray-500 text-xs mt-1">{error}</p>
+                    <p className="text-gray-500 text-xs mt-1">{ageTrendError}</p>
                     <button 
-                      onClick={fetchHeartRateData}
+                      onClick={fetchAgeTrendData}
                       className="mt-3 px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
                     >
                       Retry
@@ -583,30 +814,23 @@ export default function HealthDashboard({ onBack, onNavigateToSchedule, onNaviga
               )}
 
               {/* Empty State */}
-              {!loading && !error && heartRateData.length === 0 && (
+              {!ageTrendLoading && !ageTrendError && ageTrendData.length === 0 && (
                 <div className="h-64 flex items-center justify-center">
                   <div className="text-center">
-                    <p className="text-gray-500">No heart rate data available for this period</p>
+                    <p className="text-gray-500">No age trend data available for this period</p>
                   </div>
                 </div>
               )}
 
               {/* Chart */}
-              {!loading && !error && heartRateData.length > 0 && (
+              {!ageTrendLoading && !ageTrendError && ageTrendData.length > 0 && (
                 <div className="h-64 relative">
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={heartRateData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                      <defs>
-                        <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.2} />
-                          <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      
+                    <ComposedChart data={ageTrendData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
                       
                       <XAxis 
-                        dataKey="name" 
+                        dataKey="date" 
                         axisLine={false} 
                         tickLine={false} 
                         tick={{ fill: '#ccc', fontSize: 12 }} 
@@ -615,25 +839,54 @@ export default function HealthDashboard({ onBack, onNavigateToSchedule, onNaviga
                       
                       <YAxis 
                         axisLine={false} 
-                      tickLine={false} 
-                      tick={{ fill: '#ccc', fontSize: 12 }} 
-                    />
+                        tickLine={false} 
+                        tick={{ fill: '#ccc', fontSize: 12 }} 
+                      />
 
                     <Tooltip 
                       contentStyle={{ borderRadius: '10px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
                     />
 
-                    <Area
+                    <Line
                       type="monotone"
-                      dataKey="value"
+                      dataKey="chronologicalAge"
                       stroke="#3b82f6"
                       strokeWidth={3}
-                      fillOpacity={1}
-                      fill="url(#colorValue)"
-                      style={{ filter: 'drop-shadow(0px 4px 4px rgba(59, 130, 246, 0.2))' }}
+                      dot={{ r: 4, fill: '#3b82f6' }}
+                      name="Chronological Age"
                     />
-                  </AreaChart>
+
+                    <Line
+                      type="monotone"
+                      dataKey="biologicalAge"
+                      stroke="#f97316"
+                      strokeWidth={3}
+                      dot={{ r: 4, fill: '#f97316' }}
+                      name="Biological Age"
+                    />
+
+                    <ReferenceLine y={0} stroke="#f3f4f6" />
+                  </ComposedChart>
                 </ResponsiveContainer>
+                </div>
+              )}
+
+              {!ageTrendLoading && !ageTrendError && ageTrendData.length > 0 && (
+                <div className="mt-3 flex items-center gap-6 text-xs text-gray-600">
+                  <div className="flex items-center gap-2">
+                    <span className="inline-block w-3 h-3 rounded-full bg-blue-500"></span>
+                    Chronological Age
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="inline-block w-3 h-3 rounded-full bg-orange-500"></span>
+                    Biological Age
+                  </div>
+                </div>
+              )}
+
+              {!ageTrendLoading && !ageTrendError && (
+                <div className="mt-4 rounded-lg border border-blue-100 bg-blue-50 px-5 py-4">
+                  <p className="text-base md:text-lg font-bold leading-relaxed text-blue-900">Trend Summary: {getShortTrendSummary()}</p>
                 </div>
               )}
             </div>
@@ -642,11 +895,29 @@ export default function HealthDashboard({ onBack, onNavigateToSchedule, onNaviga
             <div className="bg-white rounded-xl shadow-sm p-6">
               <h3 className="text-xl font-bold text-gray-900 mb-6">Body Metrics</h3>
               <div className="space-y-6">
-                <BodyMetric label="Height" value="178 cm" color="bg-blue-500" percentage={90} />
-                <BodyMetric label="BMI" value="23.7" color="bg-green-500" percentage={65} />
-                <BodyMetric label="Body Fat" value="18.5%" color="bg-yellow-500" percentage={40} />
-                <BodyMetric label="Muscle Mass" value="62 kg" color="bg-purple-500" percentage={85} />
-                <BodyMetric label="Water %" value="58%" color="bg-cyan-500" percentage={58} />
+                {bodyMetricConfig.map((metric) => {
+                  const currentValue = bodyMetrics[metric.key];
+                  const avgValue = ageAverages[metric.key];
+                  const currentPct = clampPercent((currentValue / metric.rangeMax) * 100);
+                  const avgPct = clampPercent((avgValue / metric.rangeMax) * 100);
+                  const isAboveAverage = currentValue > avgValue;
+                  const excessPct = isAboveAverage ? Math.max(0, currentPct - avgPct) : 0;
+
+                  return (
+                    <BodyMetric
+                      key={metric.key}
+                      label={metric.label}
+                      value={formatMetricValue(metric.key, currentValue)}
+                      averageValue={formatMetricValue(metric.key, avgValue)}
+                      color={metric.color}
+                      percentage={currentPct}
+                      averagePercentage={avgPct}
+                      excessPercentage={excessPct}
+                      isAboveAverage={isAboveAverage}
+                      age={bodyMetrics.age}
+                    />
+                  );
+                })}
               </div>
               <button className="w-full mt-6 py-3 border-2 border-blue-600 text-blue-600 rounded-lg font-medium hover:bg-blue-50">
                 View Full Report
@@ -673,7 +944,14 @@ export default function HealthDashboard({ onBack, onNavigateToSchedule, onNaviga
             </div>
 
             {/* Weight Progress Chart */}
-            <WeightTrendChart data={weightData} loading={weightLoading} error={weightError} latestWeight={latestMetrics.weight} latestDate={latestMetrics.weightDate} />
+            <WeightTrendChart
+              data={weightData}
+              loading={weightLoading}
+              error={weightError}
+              latestWeight={latestMetrics.weight}
+              latestDate={latestMetrics.weightDate}
+              onAddEntry={openAddWeightModal}
+            />
           </div>
 
           {/* Latest Lab Results */}
@@ -777,6 +1055,156 @@ export default function HealthDashboard({ onBack, onNavigateToSchedule, onNaviga
             </div>
           </div>
         </div>
+
+        {showAddReadingModal && (
+          <div className="fixed inset-0 bg-black/40 z-[100] flex items-center justify-center p-4">
+            <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl p-6">
+              <div className="flex items-center justify-between mb-5">
+                <h3 className="text-xl font-bold text-gray-900">Add Body Reading</h3>
+                <button
+                  onClick={() => setShowAddReadingModal(false)}
+                  className="p-2 rounded-lg hover:bg-gray-100"
+                >
+                  <X className="w-5 h-5 text-gray-600" />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Age</label>
+                  <input
+                    type="number"
+                    min="10"
+                    max="100"
+                    value={bodyReadingDraft.age}
+                    onChange={(e) => handleDraftChange('age', e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Height (cm)</label>
+                  <input
+                    type="number"
+                    min="100"
+                    max="230"
+                    value={bodyReadingDraft.height}
+                    onChange={(e) => handleDraftChange('height', e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">BMI</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="10"
+                    max="50"
+                    value={bodyReadingDraft.bmi}
+                    onChange={(e) => handleDraftChange('bmi', e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Body Fat (%)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="2"
+                    max="60"
+                    value={bodyReadingDraft.bodyFat}
+                    onChange={(e) => handleDraftChange('bodyFat', e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Muscle Mass (kg)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="20"
+                    max="120"
+                    value={bodyReadingDraft.muscleMass}
+                    onChange={(e) => handleDraftChange('muscleMass', e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Water (%)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="20"
+                    max="80"
+                    value={bodyReadingDraft.water}
+                    onChange={(e) => handleDraftChange('water', e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-6 flex justify-end gap-3">
+                <button
+                  onClick={() => setShowAddReadingModal(false)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={saveBodyReading}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  Save Reading
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showAddWeightModal && (
+          <div className="fixed inset-0 bg-black/40 z-[100] flex items-center justify-center p-4">
+            <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold text-gray-900">Add Weight Entry</h3>
+                <button
+                  onClick={() => setShowAddWeightModal(false)}
+                  className="p-2 rounded-lg hover:bg-gray-100"
+                >
+                  <X className="w-5 h-5 text-gray-600" />
+                </button>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Weight (kg)</label>
+                <input
+                  type="number"
+                  min="1"
+                  step="0.1"
+                  value={newWeight}
+                  onChange={(e) => setNewWeight(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                  placeholder="Enter weight"
+                />
+                <p className="text-xs text-gray-500 mt-2">Date will be saved as today.</p>
+              </div>
+
+              <div className="mt-6 flex justify-end gap-3">
+                <button
+                  onClick={() => setShowAddWeightModal(false)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={saveWeightEntry}
+                  disabled={savingWeight}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-60"
+                >
+                  {savingWeight ? 'Saving...' : 'Save Entry'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -815,15 +1243,35 @@ function MetricCard({ icon, title, value, unit, status, statusColor, bgColor, up
   );
 }
 
-function BodyMetric({ label, value, color, percentage }) {
+function BodyMetric({ label, value, averageValue, color, percentage, averagePercentage, excessPercentage, isAboveAverage, age }) {
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
         <span className="text-gray-700 font-medium">{label}</span>
         <span className="text-gray-900 font-bold">{value}</span>
       </div>
-      <div className="w-full bg-gray-200 rounded-full h-2">
+      <div className="relative w-full bg-gray-200 rounded-full h-2 overflow-visible">
         <div className={`${color} h-2 rounded-full`} style={{ width: `${percentage}%` }}></div>
+        {isAboveAverage && excessPercentage > 0 && (
+          <div
+            className="absolute top-0 h-2 bg-red-500 rounded-r-full"
+            style={{ left: `${averagePercentage}%`, width: `${excessPercentage}%` }}
+          ></div>
+        )}
+        <div
+          className="absolute -translate-x-1/2"
+          style={{ left: `${averagePercentage}%`, top: '-30px' }}
+          title={`Age average: ${averageValue}`}
+        >
+          <div className="px-2 py-0.5 rounded-full text-[10px] font-bold text-white bg-gradient-to-r from-fuchsia-500 to-violet-500 shadow">
+            AVG
+          </div>
+          <div className="mx-auto mt-0.5 w-2 h-2 rounded-full bg-violet-600 border border-white shadow-sm"></div>
+        </div>
+      </div>
+      <div className="flex items-center justify-between mt-1.5 text-xs">
+        <span className="text-gray-500">Avg at age {age}: {averageValue}</span>
+        {isAboveAverage ? <span className="text-red-600 font-semibold">Above avg</span> : <span className="text-green-600 font-semibold">At/Below avg</span>}
       </div>
     </div>
   );
@@ -860,7 +1308,7 @@ function LabResult({ icon, label, value, unit, status, bgColor }) {
   );
 }
 
-const WeightTrendChart = ({ data = [], loading = false, error = null, latestWeight = null, latestDate = null }) => {
+const WeightTrendChart = ({ data = [], loading = false, error = null, latestWeight = null, latestDate = null, onAddEntry }) => {
   const formatDateTime = (dateString) => {
     if (!dateString) return '';
     const date = new Date(dateString + 'T00:00:00'); // Ensure local timezone parsing
@@ -879,9 +1327,26 @@ const WeightTrendChart = ({ data = [], loading = false, error = null, latestWeig
 
   return (
     <div style={{ width: '100%', height: 500, background: '#f9fbfd', padding: '20px', borderRadius: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
-      <div style={{ marginBottom: '15px', fontFamily: 'sans-serif' }}>
-        <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#2c3e50' }}>Weight {latestWeight ? parseFloat(latestWeight).toFixed(2) : '—'} kg</span>
-        <div style={{ color: '#888', fontSize: '12px' }}>{latestDate ? formatDateTime(latestDate) : 'No data'}</div>
+      <div style={{ marginBottom: '15px', fontFamily: 'sans-serif', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
+        <div>
+          <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#2c3e50' }}>Weight {latestWeight ? parseFloat(latestWeight).toFixed(2) : '—'} kg</span>
+          <div style={{ color: '#888', fontSize: '12px' }}>{latestDate ? formatDateTime(latestDate) : 'No data'}</div>
+        </div>
+        <button
+          onClick={onAddEntry}
+          style={{
+            backgroundColor: '#2563eb',
+            color: '#fff',
+            border: 'none',
+            borderRadius: '8px',
+            padding: '6px 10px',
+            fontSize: '12px',
+            fontWeight: 600,
+            cursor: 'pointer'
+          }}
+        >
+          + Add Entry
+        </button>
       </div>
 
       {/* Loading State */}
