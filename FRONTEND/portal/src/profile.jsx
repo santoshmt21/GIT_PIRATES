@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Calendar,
   Heart,
@@ -24,10 +25,13 @@ import {
   Pencil,
   X,
   Save,
+  LogOut,
 } from 'lucide-react';
 import DashboardSidebar from './DashboardSidebar.jsx';
 
 export default function PatientProfile({ onBack, onNavigateToHealth, onNavigateToSchedule, onNavigateToUpload, onNavigateToBooking, onNavigateToMain }) {
+  const navigate = useNavigate();
+
   // Default static data fallback
   const defaultData = {
     email: '',
@@ -69,6 +73,18 @@ export default function PatientProfile({ onBack, onNavigateToHealth, onNavigateT
     height: '',
     weight: '',
   });
+
+  const handleLogout = () => {
+    try {
+      localStorage.removeItem('userName');
+      localStorage.removeItem('userEmail');
+      localStorage.removeItem('userRole');
+      navigate('/login', { replace: true });
+    } catch (err) {
+      console.error('Logout error:', err);
+      navigate('/login', { replace: true });
+    }
+  };
 
   const openEditModal = () => {
     setEditForm({
@@ -294,83 +310,6 @@ export default function PatientProfile({ onBack, onNavigateToHealth, onNavigateT
 
       {/* Main Content Container */}
       <div className="flex-1 bg-white rounded-3xl shadow-lg overflow-hidden flex flex-col h-full">
-      {/* Header Navigation */}
-      <header className="bg-white border-b border-gray-200 px-6 py-4 flex-shrink-0">
-        <div className="flex items-center justify-between max-w-7xl mx-auto">
-          <div className="flex items-center gap-6">
-            <button onClick={onBack} className="p-2 hover:bg-gray-100 rounded-lg">
-              <svg
-                className="w-6 h-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 6h16M4 12h16M4 18h16"
-                />
-              </svg>
-            </button>
-            <nav className="flex items-center gap-2">
-              <a
-                href="#"
-                className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
-              >
-                <Activity className="w-5 h-5" />
-                <span>Dashboard</span>
-              </a>
-              <a
-                href="#"
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg"
-              >
-                <User className="w-5 h-5" />
-                <span>Patients</span>
-              </a>
-              <a
-                href="#"
-                className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
-              >
-                <Calendar className="w-5 h-5" />
-                <span>Appointments</span>
-              </a>
-              <a
-                href="#"
-                className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
-              >
-                <Pill className="w-5 h-5" />
-                <span>Medications</span>
-              </a>
-            </nav>
-          </div>
-          <div className="flex items-center gap-4">
-            <button className="p-2 hover:bg-gray-100 rounded-lg relative">
-              <Mail className="w-6 h-6 text-gray-600" />
-            </button>
-            <button className="p-2 hover:bg-gray-100 rounded-lg relative">
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
-              <svg
-                className="w-6 h-6 text-gray-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-                />
-              </svg>
-            </button>
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
-              DR
-            </div>
-          </div>
-        </div>
-        </header>
-
         {/* Main Content */}
         <div className="flex-1 overflow-auto p-6 bg-gray-50">
         {/* Page Title */}
@@ -390,6 +329,14 @@ export default function PatientProfile({ onBack, onNavigateToHealth, onNavigateT
               <span className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-gray-600">
                 Last Visit: {profileData?.lastVisit || 'March, 2024'}
               </span>
+              <button
+                onClick={handleLogout}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-lg border border-red-200 hover:bg-red-100 transition-colors"
+                title="Logout"
+              >
+                <LogOut className="w-4 h-4" />
+                Logout
+              </button>
             </div>
           </div>
 

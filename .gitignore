@@ -1,0 +1,5 @@
+BACKEND/token.json
+BACKEND/client_secret.json.json
+**/__pycache__/
+*.pyc
+

@@ -130,34 +130,6 @@ export default function AppointmentBooking({
       <DashboardSidebar activePath="/booking" />
 
       <div className="flex-1 bg-white rounded-3xl shadow-lg p-8 overflow-y-auto h-full">
-      {/* Header Area */}
-      <div className="flex justify-between items-center mb-8">
-        <div className="flex items-center gap-4">
-          {onNavigateToMain && (
-            <button 
-              onClick={onNavigateToMain} 
-              className="p-2 bg-white border border-gray-100 rounded-xl hover:bg-gray-50 transition shadow-sm"
-              title="Go Back"
-            >
-              <span className="text-gray-600 font-bold">←</span>
-            </button>
-          )}
-          <h1 className="text-3xl font-bold text-[#374151]">Welcome, {userName}!</h1>
-        </div>
-        
-        <div className="flex items-center gap-4">
-          <button className="relative p-2.5 bg-white rounded-full shadow-sm border border-gray-100 hover:bg-gray-50 transition">
-            <Bell className="w-5 h-5 text-gray-500" />
-            <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
-          </button>
-          <img 
-            src="https://i.pravatar.cc/150?img=5" 
-            alt="Profile" 
-            className="w-11 h-11 rounded-full object-cover shadow-sm border border-gray-200" 
-          />
-        </div>
-      </div>
-
       {/* Hero / Filter Block */}
       <div className="bg-[#f3f4f6] p-8 rounded-3xl mb-12 shadow-sm relative">
         <p className="text-gray-600 font-medium mb-8 max-w-xl text-[15px] leading-relaxed">

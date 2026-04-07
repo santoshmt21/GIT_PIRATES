@@ -66,54 +66,54 @@ export default function LoginPage() {
       <div className="absolute top-0 left-0 w-72 h-72 rounded-full opacity-30 blur-3xl" style={{ background: "#00bcd4" }}></div>
       <div className="absolute bottom-0 right-0 w-64 h-64 rounded-full opacity-20 blur-3xl" style={{ background: "#0097a7" }}></div>
 
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl flex overflow-hidden relative z-10" style={{ minHeight: "500px" }}>
+      <div className="bg-white rounded-3xl shadow-2xl w-full lg:w-[75vw] flex overflow-hidden relative z-10" style={{ minHeight: "75vh" }}>
 
         {/* Left Illustration */}
         <div className="flex-1 relative flex items-center justify-center overflow-hidden" style={{ background: "linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 60%, #80deea 100%)" }}>
 
           {/* Floating badge top left */}
-          <div className="absolute top-8 left-6 bg-white rounded-2xl shadow-lg p-3 w-36 z-10">
+          <div className="absolute top-8 left-6 bg-white rounded-2xl shadow-lg p-4 w-44 z-10">
             <div className="flex items-center gap-2 mb-1">
-              <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ background: "#00bcd4" }}>+</div>
-              <span className="text-xs font-semibold text-gray-600">500+ Doctors</span>
+              <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-sm font-bold" style={{ background: "#00bcd4" }}>+</div>
+              <span className="text-sm font-semibold text-gray-600">500+ Doctors</span>
             </div>
             <div className="h-1.5 rounded w-full" style={{ background: "#e0f7fa" }}></div>
           </div>
 
           {/* Floating badge bottom right */}
-          <div className="absolute bottom-10 right-4 bg-white rounded-2xl shadow-lg px-4 py-2 z-10 flex items-center gap-2">
-            <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-sm" style={{ background: "#00bcd4" }}>✓</div>
-            <span className="text-xs font-semibold text-gray-600">Trusted Care</span>
+          <div className="absolute bottom-10 right-4 bg-white rounded-2xl shadow-lg px-5 py-3 z-10 flex items-center gap-2">
+            <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-base" style={{ background: "#00bcd4" }}>✓</div>
+            <span className="text-sm font-semibold text-gray-600">Trusted Care</span>
           </div>
 
           {/* Doctor image from Unsplash - reliable */}
           <img
             src="https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=500&h=500&fit=crop&crop=top"
             alt="Doctor"
-            className="w-72 h-72 object-cover rounded-full shadow-2xl border-4 border-white"
+            className="w-80 h-80 object-cover rounded-full shadow-2xl border-4 border-white"
           />
         </div>
 
         {/* Right: Login Form */}
-        <div className="w-full max-w-sm flex flex-col justify-center px-10 py-12">
+        <div className="w-full max-w-[30.8rem] flex flex-col justify-center px-12 py-14">
           {/* Logo */}
-          <div className="flex items-center gap-2 mb-6">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00bcd4" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <div className="flex items-center gap-2 mb-7">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#00bcd4" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z" />
               <path d="M12 8v8M8 12h8" />
             </svg>
-            <span className="text-xl font-bold" style={{ color: "#00bcd4" }}>Medilink</span>
+            <span className="text-2xl font-bold" style={{ color: "#00bcd4" }}>Medilink</span>
           </div>
 
-          <h1 className="text-3xl font-bold text-gray-800 leading-tight mb-1">Hello,</h1>
-          <p className="text-gray-400 text-sm mb-7">Welcome back! Please login to continue.</p>
+          <h1 className="text-4xl font-bold text-gray-800 leading-tight mb-2">Hello,</h1>
+          <p className="text-gray-400 text-base mb-8">Welcome back! Please login to continue.</p>
 
           {/* Role Selector */}
           <div className="flex rounded-xl overflow-hidden border mb-6" style={{ borderColor: "#b2ebf2" }}>
             <button
               type="button"
               onClick={() => setRole("patient")}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-semibold transition-all ${role === "patient" ? "text-white" : "bg-white text-gray-400"}`}
+              className={`flex-1 flex items-center justify-center gap-2 py-3 text-base font-semibold transition-all ${role === "patient" ? "text-white" : "bg-white text-gray-400"}`}
               style={role === "patient" ? { background: "linear-gradient(135deg, #00bcd4, #0097a7)" } : {}}
             >
               <svg width="15" height="15" fill="currentColor" viewBox="0 0 24 24">
@@ -124,7 +124,7 @@ export default function LoginPage() {
             <button
               type="button"
               onClick={() => setRole("doctor")}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-semibold transition-all ${role === "doctor" ? "text-white" : "bg-white text-gray-400"}`}
+              className={`flex-1 flex items-center justify-center gap-2 py-3 text-base font-semibold transition-all ${role === "doctor" ? "text-white" : "bg-white text-gray-400"}`}
               style={role === "doctor" ? { background: "linear-gradient(135deg, #00bcd4, #0097a7)" } : {}}
             >
               <svg width="15" height="15" fill="currentColor" viewBox="0 0 24 24">
@@ -142,7 +142,7 @@ export default function LoginPage() {
                 value={form.email}
                 onChange={handleChange}
                 placeholder="Username or email"
-                className="w-full outline-none py-2 text-sm text-gray-700 placeholder-gray-400 bg-transparent border-b-2 transition-colors"
+                className="w-full outline-none py-3 text-base text-gray-700 placeholder-gray-400 bg-transparent border-b-2 transition-colors"
                 style={{ borderColor: "#b2ebf2" }}
                 onFocus={e => e.target.style.borderColor = "#00bcd4"}
                 onBlur={e => e.target.style.borderColor = "#b2ebf2"}
@@ -156,37 +156,37 @@ export default function LoginPage() {
                 value={form.password}
                 onChange={handleChange}
                 placeholder="Password"
-                className="w-full outline-none py-2 text-sm text-gray-700 placeholder-gray-400 bg-transparent pr-12 border-b-2 transition-colors"
+                className="w-full outline-none py-3 text-base text-gray-700 placeholder-gray-400 bg-transparent pr-12 border-b-2 transition-colors"
                 style={{ borderColor: "#b2ebf2" }}
                 onFocus={e => e.target.style.borderColor = "#00bcd4"}
                 onBlur={e => e.target.style.borderColor = "#b2ebf2"}
               />
-              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-0 top-2 text-xs font-semibold" style={{ color: "#00bcd4" }}>
+              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-0 top-3 text-sm font-semibold" style={{ color: "#00bcd4" }}>
                 {showPassword ? "Hide" : "Show"}
               </button>
             </div>
 
             <div className="flex items-center justify-between pt-1">
-              <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-600">
+              <label className="flex items-center gap-2 cursor-pointer text-base text-gray-600">
                 <input type="checkbox" checked={rememberMe} onChange={() => setRememberMe(!rememberMe)} className="w-4 h-4" style={{ accentColor: "#00bcd4" }} />
                 Remember me
               </label>
-              <a href="#" className="text-sm font-semibold" style={{ color: "#00bcd4" }}>Forgot password?</a>
+              <a href="#" className="text-base font-semibold" style={{ color: "#00bcd4" }}>Forgot password?</a>
             </div>
 
             <button
               type="submit"
-              className="w-full py-3 rounded-full text-white font-bold text-sm tracking-wide hover:opacity-90 hover:shadow-lg active:scale-95 mt-2 shadow transition-all"
+              className="w-full py-4 rounded-full text-white font-bold text-base tracking-wide hover:opacity-90 hover:shadow-lg active:scale-95 mt-2 shadow transition-all"
               style={{ background: "linear-gradient(135deg, #00bcd4, #0097a7)" }}
             >
               Login
             </button>
           </form>
 
-          <p className="text-sm text-gray-400 text-center mt-5">
+          <p className="text-base text-gray-400 text-center mt-5">
             Don't have an account?{" "}
             {/* <a href="/signup" className="font-bold" style={{ color: "#00bcd4" }}>Sign up</a> */}
-            <p className="text-sm text-gray-500 text-center mt-4">
+            <p className="text-base text-gray-500 text-center mt-4">
   Don't have an account?{" "}
   <span
     onClick={() => navigate("/signup")}

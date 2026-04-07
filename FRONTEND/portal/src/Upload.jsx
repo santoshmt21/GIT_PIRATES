@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Upload, FileText, Image, Loader2, Copy, Download, X } from 'lucide-react';
 import DashboardSidebar from './DashboardSidebar.jsx';
+import bigHImage from './BIG_H.png';
 
 export default function TextExtractor({ onBack }) {
   const [file, setFile] = useState(null);
@@ -111,9 +112,16 @@ export default function TextExtractor({ onBack }) {
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.10),_transparent_34%),linear-gradient(180deg,_#f7fbff_0%,_#eef5fb_100%)] px-4 py-4 sm:px-6 lg:px-8">
+      <div className="pointer-events-none fixed inset-y-0 right-0 z-0 hidden w-[260px] overflow-hidden lg:block xl:w-[300px] 2xl:w-[340px]">
+        <img
+          src={bigHImage}
+          alt=""
+          className="h-full w-full object-cover object-center"
+        />
+      </div>
       <DashboardSidebar activePath="/upload" />
-      <div className="ml-0 lg:ml-24 xl:ml-28">
-        <div className="mx-auto w-full max-w-[1800px] px-3 sm:px-6 lg:px-10">
+      <div className="relative z-10 ml-0 pr-0 lg:ml-20 lg:pr-[280px] xl:ml-24 xl:pr-[320px] 2xl:pr-[360px]">
+        <div className="mx-auto w-full max-w-none px-2 sm:px-4 lg:px-6">
           <div className="mb-8 flex items-start justify-between gap-4">
             <div>
               <p className="text-[11px] font-bold uppercase tracking-[0.45em] text-cyan-600">Core Interface</p>

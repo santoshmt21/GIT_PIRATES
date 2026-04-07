@@ -590,22 +590,6 @@ const MourUI = () => {
               </div>
             </div>
 
-            {/* TABS */}
-            <div className="flex gap-8 border-b border-gray-100">
-              {["info", "chat", "doctor"].map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`pb-4 text-sm font-medium capitalize border-b-2 transition ${activeTab === tab
-                    ? "border-teal-500 text-gray-800"
-                    : "border-transparent text-gray-400 hover:text-gray-600"
-                    }`}
-                >
-                  {tab === "doctor" ? "Doctor Page" : tab.charAt(0).toUpperCase() + tab.slice(1)}
-                </button>
-              ))}
-            </div>
-
             {/* INFO CARDS */}
             <div className="grid grid-cols-3 gap-3 justify-items-start max-w-full">
               <InfoCard

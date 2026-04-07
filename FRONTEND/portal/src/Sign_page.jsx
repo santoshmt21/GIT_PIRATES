@@ -18,8 +18,8 @@ const FacebookIcon = () => (
 
 const StethoscopeIllustration = () => (
   <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center", width: "100%", height: "100%" }}>
-    <div style={{ position: "absolute", bottom: "30px", left: "50%", transform: "translateX(-50%)", width: "160px", height: "40px", background: "linear-gradient(180deg, #7b80d4 0%, #5b61b8 100%)", borderRadius: "50%", boxShadow: "0 10px 30px rgba(91,97,184,0.5)" }} />
-    <div style={{ position: "absolute", bottom: "18px", left: "50%", transform: "translateX(-50%)", width: "130px", height: "16px", background: "rgba(60,60,120,0.25)", borderRadius: "50%", filter: "blur(8px)" }} />
+    <div style={{ position: "absolute", bottom: "30px", left: "50%", transform: "translateX(-50%)", width: "160px", height: "40px", background: "linear-gradient(180deg, #5fd4e3 0%, #00bcd4 100%)", borderRadius: "50%", boxShadow: "0 10px 30px rgba(0,188,212,0.45)" }} />
+    <div style={{ position: "absolute", bottom: "18px", left: "50%", transform: "translateX(-50%)", width: "130px", height: "16px", background: "rgba(0,151,167,0.22)", borderRadius: "50%", filter: "blur(8px)" }} />
     <svg viewBox="0 0 120 140" width="140" height="160" style={{ position: "absolute", bottom: "50px" }} fill="none">
       <rect x="30" y="10" width="60" height="8" rx="4" fill="#2d2d2d" />
       <circle cx="30" cy="14" r="7" fill="#3a3a3a" />
@@ -28,9 +28,9 @@ const StethoscopeIllustration = () => (
       <path d="M90 21 Q92 55 80 75 Q68 95 60 100" stroke="#2d2d2d" strokeWidth="7" strokeLinecap="round" fill="none"/>
       <path d="M60 100 Q62 115 60 128" stroke="#2d2d2d" strokeWidth="7" strokeLinecap="round" fill="none"/>
       <circle cx="60" cy="128" r="14" fill="#2d2d2d" />
-      <circle cx="60" cy="128" r="9" fill="#1a1aff" opacity="0.8"/>
-      <circle cx="60" cy="128" r="5" fill="#4040ff" />
-      <circle cx="60" cy="128" r="2" fill="#7070ff" />
+      <circle cx="60" cy="128" r="9" fill="#0097a7" opacity="0.85"/>
+      <circle cx="60" cy="128" r="5" fill="#00bcd4" />
+      <circle cx="60" cy="128" r="2" fill="#80deea" />
     </svg>
   </div>
 );
@@ -86,41 +86,41 @@ export default function MediCareSignUp() {
   };
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px", background: "linear-gradient(135deg, #b8bdd4 0%, #9da4c0 50%, #8b93b8 100%)" }}>
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px", background: "linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 50%, #80deea 100%)" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=DM+Sans:wght@300;400;500&display=swap');
         .medicare-card { font-family: 'DM Sans', sans-serif; }
         .medicare-title { font-family: 'Playfair Display', serif; }
-        .input-field { border: none; border-bottom: 1.5px solid #d0d0e0; outline: none; background: transparent; width: 100%; padding: 8px 2px; font-size: 14px; color: #333; transition: border-color 0.3s; font-family: 'DM Sans', sans-serif; }
-        .input-field::placeholder { color: #aaa; font-size: 13px; }
-        .input-field:focus { border-bottom-color: #5b61b8; }
-        .social-btn { display: flex; align-items: center; gap: 8px; padding: 9px 18px; border: 1.5px solid #e0e0ec; border-radius: 8px; background: white; cursor: pointer; font-size: 13px; color: #444; font-weight: 500; transition: box-shadow 0.2s, border-color 0.2s; white-space: nowrap; }
-        .social-btn:hover { border-color: #b0b0d0; box-shadow: 0 2px 10px rgba(0,0,0,0.07); }
-        .create-btn { width: 100%; padding: 13px; background: linear-gradient(135deg, #5b61b8 0%, #7b80d4 100%); color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s; box-shadow: 0 4px 18px rgba(91,97,184,0.35); letter-spacing: 0.3px; }
-        .create-btn:hover { opacity: 0.92; transform: translateY(-1px); box-shadow: 0 6px 22px rgba(91,97,184,0.45); }
+        .input-field { border: none; border-bottom: 1.5px solid #b2ebf2; outline: none; background: transparent; width: 100%; padding: 13px 2px; font-size: 19px; color: #333; transition: border-color 0.3s; font-family: 'DM Sans', sans-serif; }
+        .input-field::placeholder { color: #aaa; font-size: 18px; }
+        .input-field:focus { border-bottom-color: #00bcd4; }
+        .social-btn { display: flex; align-items: center; gap: 12px; padding: 13px 24px; border: 1.5px solid #d9f3f6; border-radius: 12px; background: white; cursor: pointer; font-size: 18px; color: #444; font-weight: 500; transition: box-shadow 0.2s, border-color 0.2s; white-space: nowrap; }
+        .social-btn:hover { border-color: #80deea; box-shadow: 0 2px 10px rgba(0,0,0,0.07); }
+        .create-btn { width: 100%; padding: 18px; background: linear-gradient(135deg, #00bcd4 0%, #0097a7 100%); color: white; border: none; border-radius: 14px; font-size: 20px; font-weight: 600; cursor: pointer; transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s; box-shadow: 0 4px 18px rgba(0,151,167,0.35); letter-spacing: 0.3px; }
+        .create-btn:hover { opacity: 0.92; transform: translateY(-1px); box-shadow: 0 6px 22px rgba(0,151,167,0.45); }
         .create-btn:active { transform: translateY(0); }
-        .role-btn { flex: 1; padding: 9px; border: 1.5px solid #e0e0ec; background: white; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px; }
-        .role-btn.active { background: linear-gradient(135deg, #5b61b8, #7b80d4); color: white; border-color: transparent; }
+        .role-btn { flex: 1; padding: 13px; border: 1.5px solid #d9f3f6; background: white; cursor: pointer; font-size: 18px; font-weight: 600; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .role-btn.active { background: linear-gradient(135deg, #00bcd4, #0097a7); color: white; border-color: transparent; }
         .role-btn:first-child { border-radius: 8px 0 0 8px; }
         .role-btn:last-child { border-radius: 0 8px 8px 0; }
         .doctor-fields { overflow: hidden; transition: max-height 0.4s ease, opacity 0.3s ease; }
-        .doctor-fields.show { max-height: 200px; opacity: 1; }
+        .doctor-fields.show { max-height: 240px; opacity: 1; }
         .doctor-fields.hide { max-height: 0; opacity: 0; }
       `}</style>
 
-      <div className="medicare-card" style={{ display: "grid", gridTemplateColumns: "1fr 1.3fr", maxWidth: "780px", width: "100%", borderRadius: "22px", overflow: "hidden", boxShadow: "0 30px 80px rgba(60,65,120,0.2), 0 8px 24px rgba(0,0,0,0.1)", background: "white" }}>
+      <div className="medicare-card" style={{ display: "grid", gridTemplateColumns: "1fr 1.3fr", maxWidth: "1150px", width: "100%", borderRadius: "31px", overflow: "hidden", boxShadow: "0 30px 80px rgba(0,151,167,0.18), 0 8px 24px rgba(0,0,0,0.1)", background: "white" }}>
 
         {/* Left panel */}
-        <div style={{ background: "linear-gradient(160deg, #c8cbee 0%, #a0a5d8 100%)", padding: "36px 28px 0", display: "flex", flexDirection: "column", position: "relative", overflow: "hidden", minHeight: "520px" }}>
-          <div style={{ width: "44px", height: "44px", background: "rgba(255,255,255,0.9)", borderRadius: "12px", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 12px rgba(0,0,0,0.1)", marginBottom: "24px" }}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-              <rect x="2" y="2" width="9" height="9" rx="2" fill="#5b61b8"/>
-              <rect x="13" y="2" width="9" height="9" rx="2" fill="#5b61b8" opacity="0.6"/>
-              <rect x="2" y="13" width="9" height="9" rx="2" fill="#5b61b8" opacity="0.6"/>
-              <rect x="13" y="13" width="9" height="9" rx="2" fill="#5b61b8" opacity="0.3"/>
+        <div style={{ background: "linear-gradient(160deg, #d7f4f8 0%, #9de3ed 100%)", padding: "50px 38px 0", display: "flex", flexDirection: "column", position: "relative", overflow: "hidden", minHeight: "768px" }}>
+          <div style={{ width: "53px", height: "53px", background: "rgba(255,255,255,0.9)", borderRadius: "14px", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 12px rgba(0,0,0,0.1)", marginBottom: "29px" }}>
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+              <rect x="2" y="2" width="9" height="9" rx="2" fill="#00bcd4"/>
+              <rect x="13" y="2" width="9" height="9" rx="2" fill="#00bcd4" opacity="0.6"/>
+              <rect x="2" y="13" width="9" height="9" rx="2" fill="#00bcd4" opacity="0.6"/>
+              <rect x="13" y="13" width="9" height="9" rx="2" fill="#00bcd4" opacity="0.3"/>
             </svg>
           </div>
-          <p style={{ color: "white", fontSize: "16px", lineHeight: "1.6", fontWeight: "400", maxWidth: "180px" }}>
+          <p style={{ color: "white", fontSize: "23px", lineHeight: "1.7", fontWeight: "400", maxWidth: "264px" }}>
             We at <strong>Medilink</strong> are always fully focused on helping you wit great effort.
           </p>
           <div style={{ flex: 1, position: "relative" }}>
@@ -129,31 +129,31 @@ export default function MediCareSignUp() {
         </div>
 
         {/* Right panel */}
-        <div style={{ padding: "28px 40px 32px", position: "relative", overflowY: "auto" }}>
+        <div style={{ padding: "41px 58px 48px", position: "relative", overflowY: "auto" }}>
           <div style={{ textAlign: "right", marginBottom: "16px" }}>
-            <span style={{ fontSize: "12px", color: "#888", cursor: "pointer" }}>English(US) ▾</span>
+            <span style={{ fontSize: "17px", color: "#888", cursor: "pointer" }}>English(US) ▾</span>
           </div>
 
-          <h2 className="medicare-title" style={{ fontSize: "24px", fontWeight: "600", color: "#1a1a2e", marginBottom: "16px" }}>
+          <h2 className="medicare-title" style={{ fontSize: "36px", fontWeight: "600", color: "#1a1a2e", marginBottom: "22px" }}>
             Create Account
           </h2>
 
           {/* Social buttons */}
-          <div style={{ display: "flex", gap: "10px", marginBottom: "16px" }}>
+          <div style={{ display: "flex", gap: "14px", marginBottom: "22px" }}>
             <button className="social-btn"><GoogleIcon /> Sign up with Google</button>
             <button className="social-btn"><FacebookIcon /> Sign up with Facebook</button>
           </div>
 
           {/* Divider */}
-          <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "16px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "22px" }}>
             <div style={{ flex: 1, height: "1px", background: "#e8e8f0" }} />
-            <span style={{ fontSize: "12px", color: "#aaa" }}>–OR–</span>
+            <span style={{ fontSize: "17px", color: "#aaa" }}>–OR–</span>
             <div style={{ flex: 1, height: "1px", background: "#e8e8f0" }} />
           </div>
 
           {/* ✅ Role Selector */}
-          <div style={{ marginBottom: "16px" }}>
-            <label style={{ fontSize: "12px", color: "#aaa", display: "block", marginBottom: "6px" }}>I am a:</label>
+          <div style={{ marginBottom: "20px" }}>
+            <label style={{ fontSize: "17px", color: "#aaa", display: "block", marginBottom: "8px" }}>I am a:</label>
             <div style={{ display: "flex", borderRadius: "8px", overflow: "hidden", border: "1.5px solid #e0e0ec" }}>
               <button
                 type="button"
@@ -167,7 +167,7 @@ export default function MediCareSignUp() {
                 type="button"
                 className={`role-btn ${role === "doctor" ? "active" : ""}`}
                 onClick={() => setRole("doctor")}
-                style={{ borderLeft: "1.5px solid #e0e0ec" }}
+                style={{ borderLeft: "1.5px solid #d9f3f6" }}
               >
                 <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 3c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm7 13H5v-.23c0-.62.28-1.2.76-1.58C7.47 15.82 9.64 15 12 15s4.53.82 6.24 2.19c.48.38.76.97.76 1.58V19z"/></svg>
                 Doctor
@@ -177,20 +177,20 @@ export default function MediCareSignUp() {
 
           {/* Form fields */}
           <form onSubmit={handleSubmit}>
-            <div style={{ display: "flex", flexDirection: "column", gap: "14px", marginBottom: "16px" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "19px", marginBottom: "22px" }}>
               <div>
-                <label style={{ fontSize: "12px", color: "#aaa", display: "block", marginBottom: "4px" }}>Full Name:</label>
+                <label style={{ fontSize: "17px", color: "#aaa", display: "block", marginBottom: "6px" }}>Full Name:</label>
                 <input className="input-field" type="text" name="name" placeholder="Enter your full name" value={formData.name} onChange={handleChange} />
               </div>
               <div>
-                <label style={{ fontSize: "12px", color: "#aaa", display: "block", marginBottom: "4px" }}>Email:</label>
+                <label style={{ fontSize: "17px", color: "#aaa", display: "block", marginBottom: "6px" }}>Email:</label>
                 <input className="input-field" type="email" name="email" placeholder="Enter your email" value={formData.email} onChange={handleChange} />
               </div>
               <div>
-                <label style={{ fontSize: "12px", color: "#aaa", display: "block", marginBottom: "4px" }}>Password:</label>
+                <label style={{ fontSize: "17px", color: "#aaa", display: "block", marginBottom: "6px" }}>Password:</label>
                 <div style={{ position: "relative" }}>
                   <input className="input-field" type={showPassword ? "text" : "password"} name="password" placeholder="Enter your password" style={{ paddingRight: "28px" }} value={formData.password} onChange={handleChange} />
-                  <button type="button" onClick={() => setShowPassword(p => !p)} style={{ position: "absolute", right: "2px", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#aaa", padding: "0" }}>
+                  <button type="button" onClick={() => setShowPassword(p => !p)} style={{ position: "absolute", right: "2px", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#aaa", padding: "0", fontSize: "17px" }}>
                     {showPassword ? (
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
                     ) : (
@@ -202,9 +202,9 @@ export default function MediCareSignUp() {
 
               {/* ✅ Doctor-only fields */}
               <div className={`doctor-fields ${role === "doctor" ? "show" : "hide"}`}>
-                <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: "19px" }}>
                   <div>
-                    <label style={{ fontSize: "12px", color: "#aaa", display: "block", marginBottom: "4px" }}>Doctor ID:</label>
+                    <label style={{ fontSize: "17px", color: "#aaa", display: "block", marginBottom: "6px" }}>Doctor ID:</label>
                     <input
                       className="input-field"
                       type="text"
@@ -215,7 +215,7 @@ export default function MediCareSignUp() {
                     />
                   </div>
                   <div>
-                    <label style={{ fontSize: "12px", color: "#aaa", display: "block", marginBottom: "4px" }}>Hospital Name:</label>
+                    <label style={{ fontSize: "17px", color: "#aaa", display: "block", marginBottom: "6px" }}>Hospital Name:</label>
                     <input
                       className="input-field"
                       type="text"
@@ -232,9 +232,9 @@ export default function MediCareSignUp() {
             <button type="submit" className="create-btn">Create Account</button>
           </form>
 
-          <p style={{ textAlign: "center", marginTop: "14px", fontSize: "13px", color: "#888" }}>
+          <p style={{ textAlign: "center", marginTop: "19px", fontSize: "18px", color: "#888" }}>
             Already have an Account?{" "}
-            <Link to="/login" style={{ color: "#5b61b8", fontWeight: "600", textDecoration: "none" }}>Log in</Link>
+            <Link to="/login" style={{ color: "#00bcd4", fontWeight: "600", textDecoration: "none" }}>Log in</Link>
           </p>
         </div>
       </div>

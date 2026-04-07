@@ -19,7 +19,7 @@ from google.auth.transport.requests import Request
 from app.database import get_db
 from app import crud
 from app.MODELS.OCR import run_ocr, extract_values
-from app.MODELS.AGE import calculate_pheno_age
+from app.MODELS.AGE import calculate_pheno_age, impute_missing_biomarkers
 from app.MODELS.RISK import get_risk_report
 
 router = APIRouter(prefix="/reports", tags=["Reports"])
@@ -138,28 +138,28 @@ def _normalize_wbc_for_age(value):
 class BioAgeAnalyzeRequest(BaseModel):
     user_email: str
     age: float
-    albumin: float
-    creatinine: float
-    glucose_mgdl: float
-    crp: float
-    lymphocyte_percent: float
-    mean_cell_volume: float
-    red_cell_dist_width: float
-    alkaline_phosphatase: float
-    white_blood_cell_count: float
+    albumin: Optional[float] = None
+    creatinine: Optional[float] = None
+    glucose_mgdl: Optional[float] = None
+    crp: Optional[float] = None
+    lymphocyte_percent: Optional[float] = None
+    mean_cell_volume: Optional[float] = None
+    red_cell_dist_width: Optional[float] = None
+    alkaline_phosphatase: Optional[float] = None
+    white_blood_cell_count: Optional[float] = None
 
 
 class BioRiskAnalyzeRequest(BaseModel):
     age: float
-    albumin: float
-    creatinine: float
-    glucose_mgdl: float
-    crp: float
-    lymphocyte_percent: float
-    mean_cell_volume: float
-    red_cell_dist_width: float
-    alkaline_phosphatase: float
-    white_blood_cell_count: float
+    albumin: Optional[float] = None
+    creatinine: Optional[float] = None
+    glucose_mgdl: Optional[float] = None
+    crp: Optional[float] = None
+    lymphocyte_percent: Optional[float] = None
+    mean_cell_volume: Optional[float] = None
+    red_cell_dist_width: Optional[float] = None
+    alkaline_phosphatase: Optional[float] = None
+    white_blood_cell_count: Optional[float] = None
     sex: str = "male"
     biological_age: float
 
@@ -190,24 +190,51 @@ def get_latest_heabo_report(user_email: str, db: Session = Depends(get_db)):
         FROM heabo_reports
         WHERE user_email = :user_email
         ORDER BY report_date DESC, id DESC
-        LIMIT 1
+        LIMIT 50
         """
     )
 
-    row = db.execute(sql, {"user_email": user_email}).mappings().first()
+    rows = db.execute(sql, {"user_email": user_email}).mappings().all()
 
-    if not row:
+    if not rows:
         return {
             "success": True,
             "message": "No heabo report found for this user",
             "data": None,
         }
 
-    data = dict(row)
+    latest_row = dict(rows[0])
+    fields_to_backfill = [
+        "age",
+        "albumin",
+        "creatinine",
+        "glucose_mgdl",
+        "crp",
+        "lymphocyte_percent",
+        "mean_cell_volume",
+        "red_cell_dist_width",
+        "alkaline_phosphatase",
+        "white_blood_cell_count",
+    ]
+
+    resolved_values = {}
+    for field in fields_to_backfill:
+        resolved = None
+        for row in rows:
+            value = row.get(field)
+            if value is not None:
+                resolved = value
+                break
+        resolved_values[field] = resolved
+
+    data = {
+        **latest_row,
+        **resolved_values,
+    }
     data["wbc_for_age"] = _normalize_wbc_for_age(data.get("white_blood_cell_count"))
     return {
         "success": True,
-        "message": "Latest heabo report fetched successfully",
+        "message": "Latest heabo report fetched successfully with null fallback",
         "data": data,
     }
 
@@ -295,13 +322,22 @@ def analyze_heabo_age(payload: BioAgeAnalyzeRequest, db: Session = Depends(get_d
         inserted_id = db.execute(insert_sql, insert_params).scalar_one()
         db.commit()
 
-        output_lines = [
+        output_lines = []
+        defaults_used = result.get("defaults_used", [])
+        if defaults_used:
+            output_lines.append("NOTE: One or more biomarkers were missing and replaced with age-based average defaults.")
+            for item in defaults_used:
+                field_label = item["field"].replace("_", " ").title()
+                output_lines.append(f"- Missing {field_label}: defaulted to {item['value']} {item['unit']}")
+            output_lines.append("")
+
+        output_lines.extend([
             f"Chronological age : {result['chronological_age']} years",
             f"Biological age    : {result['biological_age']} years",
             f"Age difference    : {result['age_difference']:+} years",
             f"Mortality score   : {result['mortality_score']}",
             f"Interpretation    : {result['interpretation']}",
-        ]
+        ])
 
         return {
             "success": True,
@@ -321,25 +357,59 @@ def analyze_heabo_age(payload: BioAgeAnalyzeRequest, db: Session = Depends(get_d
 @router.post("/heabo-reports/analyze-risk")
 def analyze_heabo_risk(payload: BioRiskAnalyzeRequest):
     try:
+        filled_biomarkers, defaults_used = impute_missing_biomarkers(
+            payload.age,
+            {
+                "albumin": payload.albumin,
+                "creatinine": payload.creatinine,
+                "glucose_mgdl": payload.glucose_mgdl,
+                "crp": payload.crp,
+                "lymphocyte_percent": payload.lymphocyte_percent,
+                "mean_cell_volume": payload.mean_cell_volume,
+                "red_cell_dist_width": payload.red_cell_dist_width,
+                "alkaline_phosphatase": payload.alkaline_phosphatase,
+                "white_blood_cell_count": payload.white_blood_cell_count,
+            },
+        )
+
         risk_report = get_risk_report(
             age=int(round(payload.age)),
-            albumin=float(payload.albumin),
-            creatinine=float(payload.creatinine),
-            glucose=float(payload.glucose_mgdl),
-            crp=float(payload.crp),
-            lymphocyte_pct=float(payload.lymphocyte_percent),
-            mcv=float(payload.mean_cell_volume),
-            rdw=float(payload.red_cell_dist_width),
-            alp=float(payload.alkaline_phosphatase),
-            wbc=float(payload.white_blood_cell_count),
+            albumin=float(filled_biomarkers["albumin"]),
+            creatinine=float(filled_biomarkers["creatinine"]),
+            glucose=float(filled_biomarkers["glucose_mgdl"]),
+            crp=float(filled_biomarkers["crp"]),
+            lymphocyte_pct=float(filled_biomarkers["lymphocyte_percent"]),
+            mcv=float(filled_biomarkers["mean_cell_volume"]),
+            rdw=float(filled_biomarkers["red_cell_dist_width"]),
+            alp=float(filled_biomarkers["alkaline_phosphatase"]),
+            wbc=float(filled_biomarkers["white_blood_cell_count"]),
             sex=payload.sex,
             pheno_age=float(payload.biological_age),
         )
 
+        data = asdict(risk_report)
+        default_name_map = {
+            "albumin": "Albumin",
+            "creatinine": "Creatinine",
+            "glucose_mgdl": "Glucose",
+            "crp": "CRP",
+            "lymphocyte_percent": "Lymphocyte %",
+            "mean_cell_volume": "MCV",
+            "red_cell_dist_width": "RDW",
+            "alkaline_phosphatase": "ALP",
+            "white_blood_cell_count": "WBC",
+        }
+        default_names = {default_name_map[item["field"]] for item in defaults_used if item["field"] in default_name_map}
+        for b in data.get("biomarker_statuses", []):
+            b["used_default"] = b.get("name") in default_names
+
         return {
             "success": True,
             "message": "Risk analysis completed",
-            "data": asdict(risk_report),
+            "data": {
+                **data,
+                "defaults_used": defaults_used,
+            },
         }
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

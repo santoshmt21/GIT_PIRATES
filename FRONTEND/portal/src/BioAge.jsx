@@ -172,6 +172,18 @@ const DISEASE_ICON_MAP = {
   "Metabolic Syndrome": "⬢",
 };
 
+const DEFAULT_FIELD_TO_BIOMARKER = {
+  albumin: "Albumin",
+  creatinine: "Creatinine",
+  glucose_mgdl: "Glucose",
+  crp: "CRP",
+  lymphocyte_percent: "Lymphocyte %",
+  mean_cell_volume: "MCV",
+  red_cell_dist_width: "RDW",
+  alkaline_phosphatase: "ALP",
+  white_blood_cell_count: "WBC",
+};
+
 const RISK_LEVEL_UI = {
   Low: { label: "Low Risk", color: "#166534", bg: "rgba(22,101,52,0.15)", bar: "#22c55e", dot: "#16a34a" },
   Moderate: { label: "Moderate Risk", color: "#92400e", bg: "rgba(146,64,14,0.15)", bar: "#f59e0b", dot: "#d97706" },
@@ -188,9 +200,20 @@ function getBiomarkerRef(name, sex) {
   return REF[key] || null;
 }
 
-function mapBackendRiskToUi(riskData, sex) {
+function mapBackendRiskToUi(riskData, sex, dbMissingNames = []) {
   const biomarkerStatuses = Array.isArray(riskData?.biomarker_statuses) ? riskData.biomarker_statuses : [];
   const diseaseRisks = Array.isArray(riskData?.disease_risks) ? riskData.disease_risks : [];
+  const defaultsUsedRaw = Array.isArray(riskData?.defaults_used) ? riskData.defaults_used : [];
+
+  const defaultValueByName = {};
+  defaultsUsedRaw.forEach((item) => {
+    const name = DEFAULT_FIELD_TO_BIOMARKER[item.field];
+    if (!name) return;
+    defaultValueByName[name] = {
+      value: Number(item.value),
+      unit: item.unit || "",
+    };
+  });
 
   const bios = biomarkerStatuses.map((b) => {
     const ref = getBiomarkerRef(b.name, sex);
@@ -204,6 +227,8 @@ function mapBackendRiskToUi(riskData, sex) {
       status: b.status,
       deviation: Number(b.deviation ?? 0),
       fillPct,
+      usedDefault: Boolean(b.used_default) || Boolean(defaultValueByName[b.name]) || dbMissingNames.includes(b.name),
+      defaultValue: defaultValueByName[b.name] || null,
     };
   });
 
@@ -350,6 +375,7 @@ export default function BioAge({ onBack }) {
   const [ageOutput, setAgeOutput] = useState("");
   const [analyzing, setAnalyzing] = useState(false);
   const [barW, setBarW] = useState({});
+  const [dbMissingNames, setDbMissingNames] = useState([]);
   const resultsRef = useRef();
 
   const loadFromDatabase = async () => {
@@ -376,18 +402,34 @@ export default function BioAge({ onBack }) {
         return;
       }
 
+      const rawToBioName = {
+        albumin: "Albumin",
+        creatinine: "Creatinine",
+        glucose_mgdl: "Glucose",
+        crp: "CRP",
+        lymphocyte_percent: "Lymphocyte %",
+        mean_cell_volume: "MCV",
+        red_cell_dist_width: "RDW",
+        alkaline_phosphatase: "ALP",
+        wbc_for_age: "WBC",
+      };
+      const missingFromDb = Object.entries(rawToBioName)
+        .filter(([rawKey]) => data.data[rawKey] === null || data.data[rawKey] === undefined)
+        .map(([, bioName]) => bioName);
+      setDbMissingNames(missingFromDb);
+
       setInp((prev) => ({
         ...prev,
-        age: Number(data.data.age ?? prev.age),
-        albumin: Number(data.data.albumin ?? prev.albumin),
-        creatinine: Number(data.data.creatinine ?? prev.creatinine),
-        glucose: Number(data.data.glucose_mgdl ?? prev.glucose),
-        crp: Number(data.data.crp ?? prev.crp),
-        lymphocyte_pct: Number(data.data.lymphocyte_percent ?? prev.lymphocyte_pct),
-        mcv: Number(data.data.mean_cell_volume ?? prev.mcv),
-        rdw: Number(data.data.red_cell_dist_width ?? prev.rdw),
-        alp: Number(data.data.alkaline_phosphatase ?? prev.alp),
-        wbc: Number(data.data.wbc_for_age ?? prev.wbc),
+        age: data.data.age ?? prev.age,
+        albumin: data.data.albumin ?? null,
+        creatinine: data.data.creatinine ?? null,
+        glucose: data.data.glucose_mgdl ?? null,
+        crp: data.data.crp ?? null,
+        lymphocyte_pct: data.data.lymphocyte_percent ?? null,
+        mcv: data.data.mean_cell_volume ?? null,
+        rdw: data.data.red_cell_dist_width ?? null,
+        alp: data.data.alkaline_phosphatase ?? null,
+        wbc: data.data.wbc_for_age ?? null,
       }));
 
       setSourceMode("database");
@@ -409,6 +451,7 @@ export default function BioAge({ onBack }) {
     setSourceInfo("Manual mode selected. Enter or adjust biomarker values.");
     setReport(null);
     setAgeOutput("");
+    setDbMissingNames([]);
   };
 
   const handleAnalyze = async () => {
@@ -422,6 +465,10 @@ export default function BioAge({ onBack }) {
       setSourceError("User email not found. Please log in again.");
       return;
     }
+    if (inp.age === null || inp.age === "" || Number.isNaN(Number(inp.age))) {
+      setSourceError("Age is required for analysis.");
+      return;
+    }
 
     setAnalyzing(true);
     setSourceError("");
@@ -432,15 +479,15 @@ export default function BioAge({ onBack }) {
       const payload = {
         user_email: userEmail,
         age: Number(inp.age),
-        albumin: Number(inp.albumin),
-        creatinine: Number(inp.creatinine),
-        glucose_mgdl: Number(inp.glucose),
-        crp: Number(inp.crp),
-        lymphocyte_percent: Number(inp.lymphocyte_pct),
-        mean_cell_volume: Number(inp.mcv),
-        red_cell_dist_width: Number(inp.rdw),
-        alkaline_phosphatase: Number(inp.alp),
-        white_blood_cell_count: Number(inp.wbc),
+        albumin: inp.albumin === null || inp.albumin === "" ? null : Number(inp.albumin),
+        creatinine: inp.creatinine === null || inp.creatinine === "" ? null : Number(inp.creatinine),
+        glucose_mgdl: inp.glucose === null || inp.glucose === "" ? null : Number(inp.glucose),
+        crp: inp.crp === null || inp.crp === "" ? null : Number(inp.crp),
+        lymphocyte_percent: inp.lymphocyte_pct === null || inp.lymphocyte_pct === "" ? null : Number(inp.lymphocyte_pct),
+        mean_cell_volume: inp.mcv === null || inp.mcv === "" ? null : Number(inp.mcv),
+        red_cell_dist_width: inp.rdw === null || inp.rdw === "" ? null : Number(inp.rdw),
+        alkaline_phosphatase: inp.alp === null || inp.alp === "" ? null : Number(inp.alp),
+        white_blood_cell_count: inp.wbc === null || inp.wbc === "" ? null : Number(inp.wbc),
       };
 
       const response = await fetch("http://127.0.0.1:8000/reports/heabo-reports/analyze-age", {
@@ -456,18 +503,19 @@ export default function BioAge({ onBack }) {
 
       const backendBioAge = Number(data.data.biological_age);
       setAgeOutput(data.data.formatted_output || "");
+      const effective = data.data.effective_biomarkers || {};
 
       const riskPayload = {
         age: Number(inp.age),
-        albumin: Number(inp.albumin),
-        creatinine: Number(inp.creatinine),
-        glucose_mgdl: Number(inp.glucose),
-        crp: Number(inp.crp),
-        lymphocyte_percent: Number(inp.lymphocyte_pct),
-        mean_cell_volume: Number(inp.mcv),
-        red_cell_dist_width: Number(inp.rdw),
-        alkaline_phosphatase: Number(inp.alp),
-        white_blood_cell_count: Number(inp.wbc),
+        albumin: Number(effective.albumin ?? inp.albumin),
+        creatinine: Number(effective.creatinine ?? inp.creatinine),
+        glucose_mgdl: Number(effective.glucose_mgdl ?? inp.glucose),
+        crp: Number(effective.crp ?? inp.crp),
+        lymphocyte_percent: Number(effective.lymphocyte_percent ?? inp.lymphocyte_pct),
+        mean_cell_volume: Number(effective.mean_cell_volume ?? inp.mcv),
+        red_cell_dist_width: Number(effective.red_cell_dist_width ?? inp.rdw),
+        alkaline_phosphatase: Number(effective.alkaline_phosphatase ?? inp.alp),
+        white_blood_cell_count: Number(effective.white_blood_cell_count ?? inp.wbc),
         sex: inp.sex,
         biological_age: backendBioAge,
       };
@@ -483,7 +531,7 @@ export default function BioAge({ onBack }) {
         throw new Error(riskData?.detail || riskData?.message || "Risk analysis failed");
       }
 
-      const r = mapBackendRiskToUi(riskData.data, inp.sex);
+      const r = mapBackendRiskToUi(riskData.data, inp.sex, sourceMode === "database" ? dbMissingNames : []);
       setReport(r);
 
       const bws = {};
@@ -518,52 +566,52 @@ export default function BioAge({ onBack }) {
 
       <div className="min-h-screen w-full pl-36" style={{ background: "linear-gradient(135deg, #f0f9ff 0%, #ecfeff 45%, #eff6ff 100%)", color: "#0f172a", fontFamily: "'Outfit', sans-serif" }}>
         <DashboardSidebar activePath="/bioage" />
-        <nav className="sticky top-0 z-50 h-14 px-14 flex items-center justify-between" style={{ background: "rgba(255,255,255,0.9)", backdropFilter: "blur(16px)", borderBottom: "1px solid #dbeafe" }}>
+        <nav className="sticky top-0 z-50 h-16 px-16 flex items-center justify-between" style={{ background: "rgba(255,255,255,0.9)", backdropFilter: "blur(16px)", borderBottom: "1px solid #dbeafe" }}>
           <div className="flex items-center gap-2.5">
             <div className="w-2 h-2 rounded-full" style={{ background: "#0284c7" }} />
-            <span className="text-base font-semibold tracking-tight" style={{ color: "#0f172a" }}>BioAge</span>
+            <span className="text-lg font-semibold tracking-tight" style={{ color: "#0f172a" }}>BioAge</span>
             <span className="mx-1" style={{ color: "#94a3b8" }}>/</span>
-            <span className="text-xs" style={{ color: "#64748b" }}>Disease Risk Engine</span>
+            <span className="text-sm" style={{ color: "#64748b" }}>Disease Risk Engine</span>
           </div>
           <div className="flex items-center gap-3">
             {onBack && (
               <button
                 type="button"
                 onClick={onBack}
-                className="text-xs px-3 py-1.5 rounded-full tracking-widest transition-colors hover:bg-white/5"
+                className="text-sm px-3.5 py-2 rounded-full tracking-widest transition-colors hover:bg-white/5"
                 style={{ fontFamily: "'DM Mono', monospace", color: "#0f172a", border: "1px solid #cbd5e1" }}
               >
                 ← Back
               </button>
             )}
-            <span className="text-xs px-2.5 py-1 rounded-full tracking-widest" style={{ fontFamily: "'DM Mono', monospace", color: "#0284c7", border: "1px solid rgba(14,165,233,0.35)", background: "rgba(14,165,233,0.07)" }}>v2.0 · BETA</span>
+            <span className="text-sm px-3 py-1.5 rounded-full tracking-widest" style={{ fontFamily: "'DM Mono', monospace", color: "#0284c7", border: "1px solid rgba(14,165,233,0.35)", background: "rgba(14,165,233,0.07)" }}>v2.0 · BETA</span>
           </div>
         </nav>
 
-        <div className="w-[70%] mx-auto px-14 pt-16 pb-12 grid gap-24 items-start" style={{ gridTemplateColumns: "1fr 520px" }}>
+        <div className="w-[90%] mx-auto px-16 pt-16 pb-12 grid gap-28 items-start" style={{ gridTemplateColumns: "1fr 620px" }}>
           <div>
-            <div className="text-xs mb-5 tracking-widest uppercase" style={{ fontFamily: "'DM Mono', monospace", color: "#0284c7" }}>Biological Age Analysis</div>
-            <h1 className="text-6xl font-bold leading-tight mb-5" style={{ letterSpacing: "-0.035em", color: "#0f172a" }}>
+            <div className="text-sm mb-5 tracking-widest uppercase" style={{ fontFamily: "'DM Mono', monospace", color: "#0284c7" }}>Biological Age Analysis</div>
+            <h1 className="text-7xl font-bold leading-tight mb-5" style={{ letterSpacing: "-0.035em", color: "#0f172a" }}>
               Predict your<br />
               <em className="not-italic" style={{ color: "#0284c7" }}>disease risk</em><br />
               from blood work
             </h1>
-            <p className="text-base leading-relaxed max-w-lg" style={{ color: "#475569" }}>
+            <p className="text-lg leading-relaxed max-w-xl" style={{ color: "#475569" }}>
               Choose whether to use your latest biomarkers from database or enter values manually, then analyze biological age and disease risks.
             </p>
             <div className="flex gap-10 mt-11 pt-11" style={{ borderTop: "1px solid #cbd5e1" }}>
               {[["9", "Biomarkers analyzed"], ["6", "Disease risks scored"], ["100%", "Runs locally"]].map(([n, l]) => (
                 <div key={l}>
-                  <div className="text-3xl font-bold" style={{ fontFamily: "'DM Mono', monospace", color: "#0f172a" }}>{n}</div>
-                  <div className="text-xs mt-1" style={{ color: "#64748b" }}>{l}</div>
+                  <div className="text-4xl font-bold" style={{ fontFamily: "'DM Mono', monospace", color: "#0f172a" }}>{n}</div>
+                  <div className="text-sm mt-1" style={{ color: "#64748b" }}>{l}</div>
                 </div>
               ))}
             </div>
           </div>
 
           <div>
-            <div className="rounded-2xl p-7" style={{ border: "1.5px dashed rgba(14,165,233,0.4)", background: "#ffffff" }}>
-              <div className="text-base uppercase tracking-widest mb-3" style={{ fontFamily: "'DM Mono', monospace", color: "#0284c7" }}>
+            <div className="rounded-2xl p-8" style={{ border: "1.5px dashed rgba(14,165,233,0.4)", background: "#ffffff" }}>
+              <div className="text-lg uppercase tracking-widest mb-3" style={{ fontFamily: "'DM Mono', monospace", color: "#0284c7" }}>
                 Marker Data Source
               </div>
               <div className="grid gap-3" style={{ gridTemplateColumns: "1fr 1fr" }}>
@@ -571,7 +619,7 @@ export default function BioAge({ onBack }) {
                   type="button"
                   onClick={loadFromDatabase}
                   disabled={loadingDb}
-                  className="px-4 py-3 rounded-xl text-base font-semibold transition-opacity disabled:opacity-60"
+                  className="px-5 py-3.5 rounded-xl text-lg font-semibold transition-opacity disabled:opacity-60"
                   style={{ background: sourceMode === "database" ? "#0284c7" : "#f1f5f9", color: sourceMode === "database" ? "#fff" : "#0f172a" }}
                 >
                   {loadingDb ? "Loading..." : "Use Latest From Database"}
@@ -579,7 +627,7 @@ export default function BioAge({ onBack }) {
                 <button
                   type="button"
                   onClick={useManualInput}
-                  className="px-4 py-3 rounded-xl text-base font-semibold transition-opacity"
+                  className="px-5 py-3.5 rounded-xl text-lg font-semibold transition-opacity"
                   style={{ background: sourceMode === "manual" ? "#0284c7" : "#f1f5f9", color: sourceMode === "manual" ? "#fff" : "#0f172a" }}
                 >
                   Enter Manually
@@ -587,18 +635,18 @@ export default function BioAge({ onBack }) {
               </div>
 
               {sourceInfo && (
-                <p className="text-sm mt-3" style={{ color: "#64748b" }}>{sourceInfo}</p>
+                <p className="text-base mt-3" style={{ color: "#64748b" }}>{sourceInfo}</p>
               )}
 
               {sourceMode === "database" && (
                 <div className="mt-4 flex items-center justify-between rounded-xl px-3 py-2" style={{ background: "#f8fafc", border: "1px solid #e2e8f0" }}>
-                  <span className="text-sm" style={{ color: "#64748b" }}>
+                  <span className="text-base" style={{ color: "#64748b" }}>
                     Values are loaded from recent heabo_reports entry.
                   </span>
                   <button
                     type="button"
                     onClick={() => setAllowEdit((v) => !v)}
-                    className="text-sm px-3 py-1 rounded-full font-semibold"
+                    className="text-base px-3.5 py-1.5 rounded-full font-semibold"
                     style={{ color: "#0f172a", border: "1px solid #cbd5e1", background: "#ffffff" }}
                   >
                     {allowEdit ? "Lock Values" : "Edit Values"}
@@ -611,8 +659,8 @@ export default function BioAge({ onBack }) {
               <div>
                 <div className="mt-4 grid gap-2.5" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
                   <div>
-                    <label className="block text-sm font-semibold mb-1 tracking-widest uppercase" style={{ fontFamily: "'DM Mono', monospace", color: "#475569" }}>Sex</label>
-                    <select value={inp.sex} onChange={(e) => setInp((p) => ({ ...p, sex: e.target.value }))} className="w-full rounded-lg px-3.5 py-2.5 text-base font-semibold outline-none transition-all duration-200" style={{ border: "1px solid #94a3b8", background: "#e2e8f0", color: "#0f172a", fontFamily: "'Outfit', sans-serif" }}>
+                    <label className="block text-base font-semibold mb-1 tracking-widest uppercase" style={{ fontFamily: "'DM Mono', monospace", color: "#475569" }}>Sex</label>
+                    <select value={inp.sex} onChange={(e) => setInp((p) => ({ ...p, sex: e.target.value }))} className="w-full rounded-lg px-4 py-3 text-lg font-semibold outline-none transition-all duration-200" style={{ border: "1px solid #94a3b8", background: "#e2e8f0", color: "#0f172a", fontFamily: "'Outfit', sans-serif" }}>
                       <option value="male">Male</option>
                       <option value="female">Female</option>
                     </select>
@@ -622,7 +670,7 @@ export default function BioAge({ onBack }) {
                 <div className="mt-2.5 grid gap-2.5" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
                   {FIELDS.map((f) => (
                     <div key={f.key}>
-                      <label className="block text-sm font-semibold mb-1 tracking-widest uppercase" style={{ fontFamily: "'DM Mono', monospace", color: "#475569" }}>
+                      <label className="block text-base font-semibold mb-1 tracking-widest uppercase" style={{ fontFamily: "'DM Mono', monospace", color: "#475569" }}>
                         {f.label} <span style={{ color: "#94a3b8" }}>{f.unit}</span>
                       </label>
                       <input
@@ -630,10 +678,16 @@ export default function BioAge({ onBack }) {
                         step={f.step}
                         min={f.min}
                         max={f.max}
-                        value={inp[f.key]}
-                        onChange={(e) => setInp((p) => ({ ...p, [f.key]: parseFloat(e.target.value) || p[f.key] }))}
+                        value={inp[f.key] ?? ""}
+                        onChange={(e) => {
+                          const raw = e.target.value;
+                          setInp((p) => ({
+                            ...p,
+                            [f.key]: raw === "" ? null : parseFloat(raw),
+                          }));
+                        }}
                         disabled={!allowEdit && sourceMode === "database"}
-                        className="w-full rounded-lg px-3.5 py-2.5 text-base font-semibold outline-none transition-all duration-200"
+                        className="w-full rounded-lg px-4 py-3 text-lg font-semibold outline-none transition-all duration-200"
                         style={{ border: "1px solid #94a3b8", background: "#e2e8f0", color: "#0f172a", fontFamily: "'Outfit', sans-serif" }}
                         onFocus={(e) => (e.target.style.borderColor = "rgba(14,165,233,0.55)")}
                         onBlur={(e) => (e.target.style.borderColor = "#94a3b8")}
@@ -645,16 +699,16 @@ export default function BioAge({ onBack }) {
             )}
 
             {sourceError && (
-              <div className="mt-4 text-sm rounded-xl px-4 py-3" style={{ background: "rgba(239,68,68,0.12)", color: "#fecaca", border: "1px solid rgba(239,68,68,0.35)" }}>
+              <div className="mt-4 text-base rounded-xl px-4 py-3" style={{ background: "rgba(239,68,68,0.12)", color: "#fecaca", border: "1px solid rgba(239,68,68,0.35)" }}>
                 {sourceError}
               </div>
             )}
           </div>
         </div>
 
-        <div className="w-[70%] mx-auto px-14 pb-16">
+        <div className="w-[90%] mx-auto px-16 pb-16">
           <button
-            className="w-full py-4 rounded-2xl text-base font-semibold text-white flex items-center justify-center gap-2.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-5 rounded-2xl text-lg font-semibold text-white flex items-center justify-center gap-2.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             style={{ background: "linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)", fontFamily: "'Outfit', sans-serif", letterSpacing: "-0.01em", boxShadow: "0 4px 24px rgba(2,132,199,0.24)" }}
             onClick={handleAnalyze}
             disabled={analyzing || !sourceMode}
@@ -664,7 +718,7 @@ export default function BioAge({ onBack }) {
         </div>
 
         {report && (
-          <div ref={resultsRef} className="w-[70%] mx-auto px-14 pb-24 ph-results">
+          <div ref={resultsRef} className="w-[90%] mx-auto px-16 pb-24 ph-results">
             <hr style={{ border: "none", borderTop: "1px solid #cbd5e1", marginBottom: 56 }} />
 
             {ageOutput && (
@@ -674,7 +728,7 @@ export default function BioAge({ onBack }) {
               </div>
             )}
 
-            <div className="flex items-center gap-3.5 mb-5 text-sm uppercase tracking-widest ph-section-label" style={{ fontFamily: "'DM Mono', monospace", color: "#0284c7" }}>Summary</div>
+            <div className="flex items-center gap-3.5 mb-5 text-base uppercase tracking-widest ph-section-label" style={{ fontFamily: "'DM Mono', monospace", color: "#0284c7" }}>Summary</div>
             <div className="grid grid-cols-4 gap-4 mb-14">
               {[
                 { label: "Chronological Age", value: `${report.age}`, sub: "years old", color: "#0f172a" },
@@ -705,19 +759,46 @@ export default function BioAge({ onBack }) {
               ))}
             </div>
 
-            <div className="flex items-center gap-3.5 mb-5 text-sm uppercase tracking-widest ph-section-label" style={{ fontFamily: "'DM Mono', monospace", color: "#0284c7" }}>Biomarkers & Disease Risks</div>
-            <div className="grid gap-5 mb-14" style={{ gridTemplateColumns: "400px 1fr" }}>
-              <div className="rounded-2xl p-6" style={{ background: "#ffffff", border: "1px solid #dbeafe", boxShadow: "0 6px 18px rgba(2,132,199,0.08)" }}>
+            <div className="flex items-center gap-3.5 mb-5 text-base uppercase tracking-widest ph-section-label" style={{ fontFamily: "'DM Mono', monospace", color: "#0284c7" }}>Biomarkers & Disease Risks</div>
+            <div className="grid gap-5 mb-14" style={{ gridTemplateColumns: "680px 1fr" }}>
+              <div className="rounded-2xl p-8" style={{ background: "#ffffff", border: "1px solid #dbeafe", boxShadow: "0 6px 18px rgba(2,132,199,0.08)" }}>
                 {report.bios.map((b, i) => {
                   const cfg = BIO_CFG[b.status];
                   return (
-                    <div key={i} className="flex items-center gap-3 py-2.5" style={{ borderBottom: i < report.bios.length - 1 ? "1px solid #e2e8f0" : "none" }}>
-                      <div className="text-base w-28 flex-shrink-0" style={{ color: "#334155" }}>{b.name}</div>
-                      <div className="text-sm w-16 flex-shrink-0 text-right" style={{ fontFamily: "'DM Mono', monospace", color: cfg.color }}>{b.value}</div>
-                      <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: "#e2e8f0" }}>
+                    <div key={i} className="flex items-center gap-4 py-3" style={{ borderBottom: i < report.bios.length - 1 ? "1px solid #e2e8f0" : "none" }}>
+                      {b.usedDefault && (
+                        <span
+                          className="text-base font-bold px-3 py-1.5 rounded-full flex-shrink-0 tracking-wide"
+                          style={{ fontFamily: "'DM Mono', monospace", background: "rgba(2,132,199,0.14)", color: "#0284c7", border: "1px solid rgba(2,132,199,0.35)" }}
+                          title="Value missing in source report"
+                        >
+                          MISSING
+                        </span>
+                      )}
+                      <div className="text-lg w-32 flex-shrink-0" style={{ color: "#334155" }}>{b.name}</div>
+                      <div className="text-base w-20 flex-shrink-0 text-right" style={{ fontFamily: "'DM Mono', monospace", color: cfg.color }}>{b.value}</div>
+                      {b.usedDefault && b.defaultValue && (
+                        <div
+                          className="text-sm w-32 flex-shrink-0 text-right"
+                          style={{ fontFamily: "'DM Mono', monospace", color: "#0284c7" }}
+                          title="Auto-filled because original value was missing"
+                        >
+                          def {b.defaultValue.value}
+                        </div>
+                      )}
+                      {b.usedDefault && !b.defaultValue && (
+                        <div
+                          className="text-sm w-32 flex-shrink-0 text-right"
+                          style={{ fontFamily: "'DM Mono', monospace", color: "#0284c7" }}
+                          title="Original value missing in database"
+                        >
+                          default
+                        </div>
+                      )}
+                      <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: "#e2e8f0" }}>
                         <div className="h-full rounded-full" style={{ width: `${barW[b.name] || 0}%`, background: cfg.bar, transition: "width 1s cubic-bezier(.4,0,.2,1)" }} />
                       </div>
-                      <span className="text-sm font-bold px-2 py-0.5 rounded-full flex-shrink-0 tracking-wide" style={{ fontFamily: "'DM Mono', monospace", background: cfg.bg, color: cfg.color }}>{cfg.label}</span>
+                      <span className="text-base font-bold px-2.5 py-1 rounded-full flex-shrink-0 tracking-wide" style={{ fontFamily: "'DM Mono', monospace", background: cfg.bg, color: cfg.color }}>{cfg.label}</span>
                     </div>
                   );
                 })}
@@ -728,26 +809,26 @@ export default function BioAge({ onBack }) {
               </div>
             </div>
 
-            <div className="flex items-center gap-3.5 mb-5 text-sm uppercase tracking-widest ph-section-label" style={{ fontFamily: "'DM Mono', monospace", color: "#0284c7" }}>Priority Actions</div>
+            <div className="flex items-center gap-3.5 mb-5 text-base uppercase tracking-widest ph-section-label" style={{ fontFamily: "'DM Mono', monospace", color: "#0284c7" }}>Priority Actions</div>
             <div className="grid grid-cols-3 gap-3">
               {report.allRecs.map((r, i) => (
                 <div key={i} className="rounded-2xl px-5 py-5 flex gap-3.5 items-start" style={{ background: "#ffffff", border: "1px solid #dbeafe", boxShadow: "0 6px 18px rgba(2,132,199,0.08)" }}>
                   <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold flex-shrink-0" style={{ fontFamily: "'DM Mono', monospace", background: "rgba(14,165,233,0.12)", border: "1px solid rgba(14,165,233,0.22)", color: "#0284c7" }}>{i + 1}</div>
-                  <div className="text-lg leading-relaxed" style={{ color: "#334155" }}>{r}</div>
+                  <div className="text-xl leading-relaxed" style={{ color: "#334155" }}>{r}</div>
                 </div>
               ))}
             </div>
 
             <div className="mt-10 rounded-2xl px-6 py-6" style={{ background: "linear-gradient(135deg, #d6f0ff 0%, #d9f7f3 100%)", border: "1px solid #7dd3fc", boxShadow: "0 8px 20px rgba(14,165,233,0.14)" }}>
-              <div className="text-base uppercase tracking-widest mb-4" style={{ fontFamily: "'DM Mono', monospace", color: "#0369a1" }}>
+              <div className="text-lg uppercase tracking-widest mb-4" style={{ fontFamily: "'DM Mono', monospace", color: "#0369a1" }}>
                 Health Summary
               </div>
-              <p className="text-lg leading-9" style={{ color: "#0f172a" }}>
+              <p className="text-xl leading-10" style={{ color: "#0f172a" }}>
                 {healthSummaryText}
               </p>
             </div>
 
-            <div className="text-center text-xs mt-14" style={{ color: "#64748b" }}>For informational purposes only - not a medical diagnosis. Always consult a licensed physician.</div>
+            <div className="text-center text-sm mt-14" style={{ color: "#64748b" }}>For informational purposes only - not a medical diagnosis. Always consult a licensed physician.</div>
           </div>
         )}
       </div>
