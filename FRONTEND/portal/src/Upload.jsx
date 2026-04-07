@@ -110,151 +110,170 @@ export default function TextExtractor({ onBack }) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-6 pl-36 overflow-x-hidden">
+    <div className="min-h-screen overflow-x-hidden bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.10),_transparent_34%),linear-gradient(180deg,_#f7fbff_0%,_#eef5fb_100%)] px-4 py-4 sm:px-6 lg:px-8">
       <DashboardSidebar activePath="/upload" />
-      <div className="max-w-[90rem] mx-auto">
-        {onBack && (
-          <button 
-            onClick={onBack}
-            className="mb-6 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-medium transition"
-          >
-            ← Back
-          </button>
-        )}
-        <div className="max-w-3xl mx-auto">
-          {/* Left Column: Medical Report Upload and Analysis */}
-          <div className="bg-white rounded-2xl shadow-xl p-8">
-            <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-800 mb-2">
-              MEDICAL REPORT UPLOAD AND  ANALYSIS
-            </h1>
-            <p className="text-gray-600">
-              
-            </p>
-          </div>
-
-          <div className="mb-8">
-            <label
-              htmlFor="file-upload"
-              className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-all"
-            >
-              <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                <Upload className="w-12 h-12 text-gray-400 mb-4" />
-                <p className="mb-2 text-sm text-gray-500">
-                  <span className="font-semibold">Click to upload</span> or drag and drop
-                </p>
-                <p className="text-xs text-gray-500">Image files (PNG, JPG, JPEG, WEBP, BMP)</p>
+      <div className="ml-0 lg:ml-24 xl:ml-28">
+        <div className="mx-auto w-full max-w-[1800px] px-3 sm:px-6 lg:px-10">
+          <div className="mb-8 flex items-start justify-between gap-4">
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-[0.45em] text-cyan-600">Core Interface</p>
+              <h1 className="mt-1 text-4xl font-extrabold leading-tight text-slate-900 sm:text-5xl lg:text-6xl">
+                Precision Bio-Data
+                <span className="block text-cyan-600">Ingestion</span>
+              </h1>
+            </div>
+            <div className="hidden rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 shadow-sm backdrop-blur sm:block">
+              <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-slate-400">System Status</p>
+              <div className="mt-1 flex items-center gap-2 text-xs font-semibold text-slate-800">
+                <span className="h-2 w-2 rounded-full bg-cyan-500" />
+                NEURAL_LINK ACTIVE
               </div>
-              <input
-                id="file-upload"
-                type="file"
-                className="hidden"
-                accept="image/*"
-                onChange={handleFileChange}
-                disabled={loading}
-              />
-            </label>
-
-            {file && (
-              <div className="mt-4 flex items-center justify-between bg-gray-50 p-3 rounded-lg">
-                <div className="flex items-center gap-2 text-sm text-gray-700">
-                  {file.type === 'application/pdf' ? (
-                    <FileText className="w-5 h-5 text-red-500" />
-                  ) : (
-                    <Image className="w-5 h-5 text-blue-500" />
-                  )}
-                  <span className="font-medium">{file.name}</span>
-                  <span className="text-gray-500">
-                    ({(file.size / 1024).toFixed(2)} KB)
-                  </span>
-                </div>
-                {!loading && (
-                  <button
-                    onClick={clearFile}
-                    className="p-1 hover:bg-gray-200 rounded-full transition-colors"
-                  >
-                    <X className="w-4 h-4 text-gray-600" />
-                  </button>
-                )}
-              </div>
-            )}
+            </div>
           </div>
 
           {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
-              <p className="font-medium mb-1">Error</p>
+            <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-red-700 shadow-sm">
+              <p className="text-sm font-semibold">Error</p>
               <p className="text-sm">{error}</p>
             </div>
           )}
 
           {loading && (
-            <div className="flex flex-col items-center justify-center py-12">
-              <Loader2 className="w-8 h-8 text-blue-600 animate-spin mb-3" />
-              <span className="text-gray-600 text-center px-4">{progress || 'Processing...'}</span>
+            <div className="mb-4 rounded-2xl border border-cyan-100 bg-white/80 px-4 py-3 shadow-sm backdrop-blur">
+              <div className="flex items-center gap-3 text-slate-700">
+                <Loader2 className="h-5 w-5 animate-spin text-cyan-600" />
+                <span className="text-sm font-medium">{progress || 'Processing...'}</span>
+              </div>
             </div>
           )}
 
-          {extractedText && !loading && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-gray-800">Extracted Text</h2>
-                <div className="flex gap-2">
-                  <button
-                    onClick={copyToClipboard}
-                    className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
-                  >
-                    <Copy className="w-4 h-4" />
-                    Copy
-                  </button>
-                  <button
-                    onClick={downloadText}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-                  >
-                    <Download className="w-4 h-4" />
-                    Download
-                  </button>
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,1.8fr)_minmax(360px,0.95fr)]">
+            <section className="rounded-[32px] border border-slate-200/80 bg-white/85 p-6 shadow-[0_20px_50px_rgba(15,23,42,0.08)] backdrop-blur sm:p-8 lg:p-10">
+              <label
+                htmlFor="file-upload"
+                className="group flex min-h-[560px] cursor-pointer flex-col items-center justify-center rounded-[28px] border-2 border-dashed border-sky-100 bg-slate-50/70 px-8 py-12 text-center transition duration-200 hover:border-sky-300 hover:bg-sky-50/80"
+              >
+                <div className="flex h-24 w-24 items-center justify-center rounded-full bg-white shadow-[0_18px_40px_rgba(2,132,199,0.18)] ring-1 ring-sky-100">
+                  <Upload className="h-12 w-12 text-cyan-500 transition group-hover:scale-105" />
+                </div>
+                <h2 className="mt-10 text-3xl font-semibold text-slate-800 sm:text-4xl">Drop Medical Records</h2>
+                <p className="mt-4 max-w-2xl text-base leading-7 text-slate-500 sm:text-lg">
+                  Securely ingest image reports. Our clinical prism engine will automatically parse your biomarkers for analysis.
+                </p>
+                <div className="mt-10 inline-flex items-center rounded-full border border-slate-200 bg-white px-6 py-3 text-base font-semibold text-slate-700 shadow-sm transition group-hover:shadow-md">
+                  Browse Files
+                </div>
+                <input
+                  id="file-upload"
+                  type="file"
+                  className="hidden"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  disabled={loading}
+                />
+              </label>
+
+              {file && (
+                <div className="mt-5 flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4">
+                  <div className="flex items-center gap-3 text-sm text-slate-700">
+                    {file.type === 'application/pdf' ? (
+                      <FileText className="h-5 w-5 text-red-500" />
+                    ) : (
+                      <Image className="h-5 w-5 text-cyan-500" />
+                    )}
+                    <div>
+                      <p className="font-semibold text-slate-800">{file.name}</p>
+                      <p className="text-xs text-slate-500">{(file.size / 1024).toFixed(2)} KB</p>
+                    </div>
+                  </div>
+                  {!loading && (
+                    <button
+                      onClick={clearFile}
+                      className="rounded-full p-2 transition hover:bg-slate-200"
+                    >
+                      <X className="h-4 w-4 text-slate-600" />
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {extractedText && !loading && (
+                <div className="mt-8 space-y-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <h2 className="text-xl font-semibold text-slate-800">Extracted Text</h2>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={copyToClipboard}
+                        className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                      >
+                        <Copy className="h-4 w-4" />
+                        Copy
+                      </button>
+                      <button
+                        onClick={downloadText}
+                        className="inline-flex items-center gap-2 rounded-full bg-cyan-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-cyan-700"
+                      >
+                        <Download className="h-4 w-4" />
+                        Download
+                      </button>
+                    </div>
+                  </div>
+                  <div className="max-h-[460px] overflow-y-auto rounded-2xl border border-slate-200 bg-slate-50 p-6">
+                    <pre className="whitespace-pre-wrap text-base leading-7 text-slate-800">
+                      {extractedText}
+                    </pre>
+                  </div>
+                  <div className="text-center text-xs text-slate-500">
+                    {extractedText.split(' ').filter(w => w.length > 0).length} words • {extractedText.length} characters
+                  </div>
+                </div>
+              )}
+
+              {summary && !loading && (
+                <div className="mt-8 rounded-2xl border border-cyan-100 bg-cyan-50/70 p-6">
+                  <h2 className="text-xl font-semibold text-slate-800">Medical Report Summary</h2>
+                  <pre className="mt-3 whitespace-pre-wrap text-base leading-7 text-slate-800">
+                    {summary}
+                  </pre>
+                </div>
+              )}
+            </section>
+
+            <aside className="space-y-5">
+              <div className="rounded-[28px] border border-slate-200/80 bg-[#111c33] p-6 text-white shadow-[0_20px_50px_rgba(15,23,42,0.18)]">
+                <div className="mb-12 flex items-start justify-between">
+                  <div className="rounded-2xl bg-cyan-500/15 p-3 text-cyan-300">
+                    <svg viewBox="0 0 24 24" className="h-6 w-6 fill-none stroke-current stroke-[2]">
+                      <path d="M3 12h4l2-5 4 10 2-5h6" />
+                    </svg>
+                  </div>
+                  <span className="rounded-full bg-cyan-400/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.25em] text-cyan-300">
+                    Analysis Metric
+                  </span>
+                </div>
+                <h3 className="text-3xl font-semibold text-cyan-300">Biological Age Calculation</h3>
+                <p className="mt-3 text-base leading-7 text-slate-300">
+                  Cross-referencing biomarkers from your uploaded report to estimate your system&apos;s physiological age.
+                </p>
+                <div className="mt-10 h-2 rounded-full bg-white/10">
+                  <div className="h-2 w-[72%] rounded-full bg-gradient-to-r from-cyan-400 to-sky-500" />
                 </div>
               </div>
-              <div className="bg-gray-50 rounded-lg p-6 border border-gray-200 max-h-96 overflow-y-auto">
-                <pre className="whitespace-pre-wrap text-sm text-gray-800 font-mono">
-                  {extractedText}
-                </pre>
-              </div>
-              <div className="text-xs text-gray-500 text-center">
-                {extractedText.split(' ').filter(w => w.length > 0).length} words • {extractedText.length} characters
-              </div>
-            </div>
-          )}
 
-          {summary && !loading && (
-            <div className="space-y-4 mt-6">
-              <h2 className="text-lg font-semibold text-gray-800">Medical Report Summary</h2>
-              <div className="bg-blue-50 rounded-lg p-6 border border-blue-200">
-                <pre className="whitespace-pre-wrap text-sm text-gray-800">
-                  {summary}
-                </pre>
+              <div className="rounded-[32px] border border-amber-100 bg-amber-50 p-8 shadow-sm">
+                <p className="text-2xl font-semibold text-amber-900">Biological Age Rules</p>
+                <p className="mt-4 text-lg leading-8 text-amber-800">
+                  Blood marker values will be used to calculate your biological age. If some values are missing, average population values will be used as defaults.
+                </p>
               </div>
-            </div>
-          )}
+            </aside>
+          </div>
 
           {!file && !loading && (
-            <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <p className="text-sm text-blue-800">
-                <strong>How to use:</strong>
-              </p>
-              <ol className="text-sm text-blue-800 space-y-1 ml-4 list-decimal mt-2">
-                <li>Click the upload area above or drag and drop your file</li>
-                <li>Select an image report (PNG, JPG, JPEG, WEBP, BMP)</li>
-                <li>Wait for OCR.py to extract the text</li>
-                <li>Copy or download the extracted text</li>
-              </ol>
-              <p className="text-xs text-blue-700 mt-3">
-                ✨ Supports medical reports with OCR-based value extraction
-              </p>
+            <div className="mt-8 text-sm text-slate-500">
+              Supports image-based medical reports with OCR extraction and biomarker inference.
             </div>
           )}
-        </div>
-          
         </div>
       </div>
     </div>
