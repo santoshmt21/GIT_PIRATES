@@ -261,6 +261,7 @@ def get_heabo_age_trend(user_email: str, days: int = 90, db: Session = Depends(g
         for row in rows:
             created_at = row["created_at"]
             report_date = created_at.date() if hasattr(created_at, "date") else created_at
+            report_datetime = created_at.isoformat() if hasattr(created_at, "isoformat") else str(created_at)
             chronological_age = float(row["chronological_age"])
             biological_age = float(row["biological_age"])
 
@@ -268,6 +269,7 @@ def get_heabo_age_trend(user_email: str, days: int = 90, db: Session = Depends(g
                 {
                     "id": row["id"],
                     "report_date": str(report_date),
+                    "report_datetime": report_datetime,
                     "chronological_age": chronological_age,
                     "biological_age": biological_age,
                     "age_gap": round(biological_age - chronological_age, 1),

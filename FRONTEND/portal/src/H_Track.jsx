@@ -397,16 +397,31 @@ export default function HealthDashboard({ onBack, onNavigateToSchedule, onNaviga
 
     return data.filter(item => {
       const dateString = item[dateField];
-      const itemDate = new Date(dateString + 'T00:00:00');
+      const itemDate = typeof dateString === 'string' && dateString.includes('T')
+        ? new Date(dateString)
+        : new Date(`${dateString}T00:00:00`);
       return itemDate >= startDate && itemDate <= now;
     });
   };
 
   const formatDate = (dateString) => {
-    const date = new Date(dateString + 'T00:00:00'); // Ensure local timezone parsing
+    const date = typeof dateString === 'string' && dateString.includes('T')
+      ? new Date(dateString)
+      : new Date(`${dateString}T00:00:00`);
     const month = date.toLocaleString('default', { month: 'short' });
     const day = date.getDate();
     return `${month} ${day}`;
+  };
+
+  const formatAgeTrendLabel = (dateString) => {
+    const date = typeof dateString === 'string' && dateString.includes('T')
+      ? new Date(dateString)
+      : new Date(`${dateString}T00:00:00`);
+    const month = date.toLocaleString('default', { month: 'short' });
+    const day = date.getDate();
+    const hh = String(date.getHours()).padStart(2, '0');
+    const mm = String(date.getMinutes()).padStart(2, '0');
+    return `${month} ${day} ${hh}:${mm}`;
   };
 
   const getTimeRangeLabel = () => {
@@ -470,8 +485,8 @@ export default function HealthDashboard({ onBack, onNavigateToSchedule, onNaviga
       const rows = responseData?.data || [];
 
       const chartData = rows.map((item) => ({
-        date: formatDate(item.report_date),
-        fullDate: item.report_date,
+        date: formatAgeTrendLabel(item.report_datetime || item.report_date),
+        fullDate: item.report_datetime || item.report_date,
         chronologicalAge: Number(item.chronological_age),
         biologicalAge: Number(item.biological_age),
         gap: Number(item.age_gap),
